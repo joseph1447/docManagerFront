@@ -35,7 +35,7 @@ const App = () => {
       });
     
       try {
-        const response = await fetch("https://docmanagerapi.onrender.com:3000/upload", {
+        const response = await fetch("https://docmanagerapi.onrender.com/upload", {
           method: "POST",
           body: formData,
         });
