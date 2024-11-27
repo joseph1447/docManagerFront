@@ -11,7 +11,11 @@ import SidePanel from "./components/SidePanel/Sidepanel";
 import "./App.css";
 
 const App = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Restaurar sesión desde localStorage al inicializar
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   const handleLoginSuccess = (credentialResponse) => {
     const accessToken = credentialResponse.access_token; // Get the access token
@@ -37,6 +41,9 @@ const App = () => {
   
       // You can set the user data in the state if needed
       setUser(userData);
+
+      localStorage.setItem("user", JSON.stringify(userData));
+
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
@@ -44,6 +51,8 @@ const App = () => {
   
   const handleLogout = () => {
     setUser(null);
+    localStorage.removeItem("user"); // Eliminar datos de la sesión
+
   };
 
   return (
