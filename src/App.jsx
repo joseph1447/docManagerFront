@@ -5,6 +5,7 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import Legal from "./components/Legal/Legal";
 import TopBar from "./components/TopBar/TopBar";
 import XmlToExcel from "./components/XmlToExcel/XmlToExcel";
+import PropTypes from 'prop-types';
 
 import SidePanel from "./components/SidePanel/Sidepanel";
 import "./App.css";
@@ -93,7 +94,9 @@ const LoginPrompt = ({ onLoginSuccess }) => {
     onSuccess: onLoginSuccess,
     onError: () => alert("Login failed. Please try again."),
   });
-
+  LoginPrompt.propTypes = {
+    onLoginSuccess: PropTypes.func.isRequired,
+};
   return (
     <div className="login-prompt">
       <h2>Please log in to access the dashboard</h2>
