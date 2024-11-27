@@ -1,0 +1,52 @@
+/* TopBar.css */
+
+/* General styling for TopBar */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #343a40; /* Fondo oscuro elegante */
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra para dar profundidad */
+  height: 65px;
+}
+
+/* Content container inside TopBar */
+.topbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px; /* Ajuste centrado para pantallas grandes */
+  margin: 0 auto;
+}
+
+/* User info section */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Espacio entre avatar y texto */
+}
+
+/* User avatar */
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #ffffff; /* Borde blanco para destacar */
+  object-fit: cover; /* Mantiene proporciones de la imagen */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .topbar-content {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

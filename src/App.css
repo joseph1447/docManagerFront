@@ -1,42 +1,69 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* App.css */
+
+/* General reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+html, body {
+  height: 100%;
+  font-family: Arial, sans-serif;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+
+
+/* Adjust main content */
+.main-content {
+  display: flex;
+  margin-top: 4rem; /* Ajusta según el tamaño del TopBar */
+  height: calc(100% - 4rem);
+}
+
+/* SidePanel styling */
+.side-panel {
+  width: 250px;
+  background-color: #f8f9fa; /* Cambia el color según prefieras */
+  border-right: 1px solid #ddd;
+  flex-shrink: 0;
+  overflow-y: auto;
+  position: fixed;
+  top: 4rem; /* Debajo del TopBar */
+  bottom: 0;
+}
+
+/* Content area */
+.content-area {
+  margin-left: 250px; /* Debe coincidir con el ancho del SidePanel */
+  flex-grow: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .side-panel {
+    width: 200px;
   }
-  to {
-    transform: rotate(360deg);
+  .content-area {
+    margin-left: 200px;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@media (max-width: 576px) {
+  .side-panel {
+    width: 100%;
+    position: static;
+    margin-bottom: 1rem;
   }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  .content-area {
+    margin-left: 0;
+  }
 }
