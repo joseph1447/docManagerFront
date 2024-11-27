@@ -16,6 +16,7 @@
     "@mui/material": "^6.1.8",
     "@react-oauth/google": "^0.12.1",
     "docmanagerfront": "file:",
+    "dotenv": "^16.4.5",
     "js-jwt": "^0.2.7",
     "jwt-decode": "^4.0.0",
     "react": "^18.3.1",
