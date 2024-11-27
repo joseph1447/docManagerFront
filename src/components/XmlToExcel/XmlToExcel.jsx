@@ -37,7 +37,7 @@ const XmlToExcel = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/upload",
+        "https://docmanagerapi.onrender.com/upload",
         {
           method: "POST",
           body: formData,

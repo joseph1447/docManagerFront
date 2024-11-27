@@ -1,10 +1,11 @@
 import  { useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
-import { decode } from 'js-jwt'; // Use the decode method from js-jwt
 import Dashboard from "./components/Dashboard/Dashboard";
 import Legal from "./components/Legal/Legal";
 import TopBar from "./components/TopBar/TopBar";
+import XmlToExcel from "./components/XmlToExcel/XmlToExcel";
+
 import SidePanel from "./components/SidePanel/Sidepanel";
 import "./App.css";
 
@@ -12,10 +13,34 @@ const App = () => {
   const [user, setUser] = useState(null);
 
   const handleLoginSuccess = (credentialResponse) => {
-    const decoded = decode(credentialResponse.credential); // Decoding the JWT
-    // setUser(decoded);
+    const accessToken = credentialResponse.access_token; // Get the access token
+    if (accessToken) {
+      // Now use the access token to fetch user data
+      fetchUserData(accessToken);
+    } else {
+      console.error('Access token is missing');
+    }
   };
-
+  
+  const fetchUserData = async (accessToken) => {
+    try {
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`, // Use the access token for authorization
+        },
+      });
+  
+      const userData = await response.json(); // Parse the user data
+      console.log(userData); // Now you have the user data
+  
+      // You can set the user data in the state if needed
+      setUser(userData);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+  
   const handleLogout = () => {
     setUser(null);
   };
@@ -33,7 +58,7 @@ const App = () => {
 
             <div className="content-area">
               <Routes>
-                <Route
+              <Route
                   path="/"
                   element={
                     user ? (
@@ -43,8 +68,18 @@ const App = () => {
                     )
                   }
                 />
+                <Route
+                  path="/xml-to-excel"
+                  element={
+                    user ? (
+                      <XmlToExcel/>
+                    ) : (
+                      <LoginPrompt onLoginSuccess={handleLoginSuccess} />
+                    )
+                  }
+                />
                 <Route path="/legal" element={<Legal />} />
-              </Routes>
+                </Routes>
             </div>
           </div>
         </div>

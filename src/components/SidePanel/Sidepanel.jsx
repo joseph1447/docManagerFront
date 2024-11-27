@@ -8,6 +8,7 @@ const SidePanel = () => {
 
   const menuItems = [
     { path: "/", icon: <FaTachometerAlt />, label: "Dashboard" },
+    { path: "/xml-to-excel", icon: <FaTachometerAlt />, label: "XML To Excel" },
     { path: "/legal", icon: <FaLock />, label: "Política de Privacidad" },
     // Agrega más opciones aquí
   ];
