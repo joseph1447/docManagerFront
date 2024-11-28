@@ -46,6 +46,11 @@ html, body {
   padding: 1rem;
   overflow-y: auto;
 }
+.login-prompt{
+  margin-left: 80px;
+  width: 100%;
+  margin-top: -50%;
+}
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {

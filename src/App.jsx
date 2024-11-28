@@ -62,11 +62,9 @@ const App = () => {
           {/* TopBar */}
           <TopBar user={user} onLogout={handleLogout} />
 
-          <div className="main-content">
             {/* SidePanel */}
             <SidePanel />
 
-            <div className="content-area">
               <Routes>
               <Route
                   path="/"
@@ -90,9 +88,7 @@ const App = () => {
                 />
                 <Route path="/legal" element={<Legal />} />
                 </Routes>
-            </div>
           </div>
-        </div>
       </Router>
     </GoogleOAuthProvider>
   );

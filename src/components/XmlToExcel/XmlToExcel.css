@@ -1,8 +1,10 @@
 .tool-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
+  display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      margin-left: 100px;
+      margin-top: -190px;
   }
   
   .tool-title {

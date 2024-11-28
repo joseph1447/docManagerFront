@@ -1,0 +1,47 @@
+/* Ensure content starts below the TopBar */
+.legal-container {
+    margin-top: 300px;
+    padding: 20px;
+    max-width: 1200px;
+    margin-left: 70px;
+    margin-right: auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: #333;
+    line-height: 1.6;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Headings */
+  .legal-container h1 {
+    font-size: 2rem;
+    text-align: center;
+    color: #0056b3; /* Optional: Brand color for title */
+    margin-bottom: 20px;
+  }
+  
+  /* Paragraphs */
+  .legal-container p {
+    margin-bottom: 15px;
+    font-size: 1rem;
+  }
+  
+  /* Make content responsive for smaller screens */
+  @media (max-width: 768px) {
+    .legal-container {
+        margin-top: 485px;
+        padding: 15px;
+        width: 100%;
+        margin-left: 58px;
+    }
+  
+    .legal-container h1 {
+      font-size: 1.5rem; /* Smaller font size for headings */
+    }
+  
+    .legal-container p {
+      font-size: 0.9rem; /* Smaller font for paragraphs */
+    }
+  }
+  
