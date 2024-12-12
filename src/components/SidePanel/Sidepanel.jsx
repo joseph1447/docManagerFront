@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import "./SidePanel.css";
-import { FaBars, FaTachometerAlt, FaLock, FaChevronLeft } from "react-icons/fa"; // Importamos íconos desde react-icons
+import { FaBars, FaTachometerAlt, FaLock, FaChevronLeft,FaBookReader } from "react-icons/fa"; // Importamos íconos desde react-icons
 
 const SidePanel = () => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const menuItems = [
     { path: "/", icon: <FaTachometerAlt />, label: "Dashboard" },
-    { path: "/xml-to-excel", icon: <FaTachometerAlt />, label: "XML To Excel" },
+    { path: "/xml-to-excel", icon: <FaBookReader />, label: "XML To Excel" },
     { path: "/legal", icon: <FaLock />, label: "Política de Privacidad" },
     // Agrega más opciones aquí
   ];
