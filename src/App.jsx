@@ -6,7 +6,6 @@ import Legal from "./components/Legal/Legal";
 import TopBar from "./components/TopBar/TopBar";
 import XmlToExcel from "./components/XmlToExcel/XmlToExcel";
 import PropTypes from 'prop-types';
-
 import SidePanel from "./components/SidePanel/Sidepanel";
 import "./App.css";
 
@@ -56,7 +55,7 @@ const App = () => {
   };
 
   return (
-    <GoogleOAuthProvider clientId="534877991669-d3q43kibggav29bqq52ctftqhlte1toa.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <Router>
         <div className="app-container">
           {/* TopBar */}
