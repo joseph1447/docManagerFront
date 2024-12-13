@@ -1,4 +1,10 @@
 /* TopBar.css */
+.logo img {
+  height: 250px;
+  width: 250px;
+  margin-top: 15px;
+  margin-left: -15px;
+}
 
 /* General styling for TopBar */
 .topbar {
@@ -24,7 +30,6 @@
   align-items: center;
   width: 100%;
   max-width: 1200px; /* Ajuste centrado para pantallas grandes */
-  margin: 0 auto;
 }
 
 /* User info section */
@@ -32,6 +37,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem; /* Espacio entre avatar y texto */
+  margin-left: auto; /* Pushes the user info to the right */
 }
 
 /* User avatar */
