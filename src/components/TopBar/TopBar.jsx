@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import "./TopBar.css";
 import logo from '../../assets/JS.svg';
 
@@ -26,6 +27,18 @@ const TopBar = ({ user, onLogout }) => {
       </div>
     </div>
   );
+};
+
+TopBar.propTypes = {
+  user: PropTypes.shape({
+    picture: PropTypes.string,
+    name: PropTypes.string,
+  }),
+  onLogout: PropTypes.func.isRequired,
+};
+
+TopBar.defaultProps = {
+  user: null,
 };
 
 export default TopBar;
