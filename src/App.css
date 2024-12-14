@@ -1,15 +1,5 @@
 /* App.css */
 
-
-
-
-/* General reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 html, body {
   height: 100%;
   font-family: Arial, sans-serif;
@@ -19,7 +9,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-left: 25%;
+  padding-left: 10%;
   width: 1200px;
   max-width: 1200px;
   margin: 0 auto;

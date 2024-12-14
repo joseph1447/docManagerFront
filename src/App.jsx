@@ -65,17 +65,8 @@ const App = () => {
             <SidePanel />
 
               <Routes>
+              <Route path="/" element={<Dashboard user={user} />} />
               <Route
-                  path="/"
-                  element={
-                    user ? (
-                      <Dashboard user={user} />
-                    ) : (
-                      <LoginPrompt onLoginSuccess={handleLoginSuccess} />
-                    )
-                  }
-                />
-                <Route
                   path="/xml-to-excel"
                   element={
                     user ? (

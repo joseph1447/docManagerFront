@@ -52,7 +52,7 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .topbar-content {
-    flex-direction: column;
-    gap: 0.5rem;
+    width: 95%;
+
   }
 }
