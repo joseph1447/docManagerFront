@@ -1,17 +1,10 @@
 import { useState, useEffect } from 'react';
 import './ChatBot.css';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const ChatBot = () => {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
-
-  // Accessing API key from environment variable
-  const apiKey = import.meta.env.VITE_APP_GEMINI_API_KEY;
-
-  // Configuration of the chat session
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const [conversationId, setConversationId] = useState(null);
 
   // Initialize system message for context
   useEffect(() => {
@@ -34,16 +27,39 @@ const ChatBot = () => {
     setUserInput('');
 
     try {
-      // Include the entire message history for context
-      const result = await model.startChat({
-        messages: [...messages, newUserMessage],
-      });
 
-      // Add the assistant's response to the chat
-      const botMessage = { role: 'assistant', content: result.text() };
-      setMessages((prevMessages) => [...prevMessages, botMessage]);
+      const env = import.meta.env.VITE_Enviroment_BaseURL;
+
+      const baseUrl = env === 'Dev' ? 'http://localhost:3000' : 'https://docmanagerapi.onrender.com';
+
+      const response = await fetch(
+        `${baseUrl}/chatbot`,
+        {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          message: userInput, 
+          conversationId: conversationId 
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // Update conversationId if it's a new conversation
+        if (!conversationId) {
+          setConversationId(data.conversationId);
+        }
+
+        // Add the assistant's response to the chat
+        const botMessage = { role: 'assistant', content: data.response };
+        setMessages((prevMessages) => [...prevMessages, botMessage]);
+      } else {
+        throw new Error(data.error || 'Error desconocido al obtener la respuesta del chatbot.');
+      }
     } catch (error) {
       console.error('Error generating response:', error);
+      // Optionally, add an error message to the UI if desired
     }
   };
 
