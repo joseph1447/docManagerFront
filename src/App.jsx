@@ -4,6 +4,7 @@ import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import Dashboard from "./components/Dashboard/Dashboard";
 import Legal from "./components/Legal/Legal";
 import TopBar from "./components/TopBar/TopBar";
+import ChatBot from "./components/ChatBot/ChatBot";
 import XmlToExcel from "./components/XmlToExcel/XmlToExcel";
 import PropTypes from 'prop-types';
 import SidePanel from "./components/SidePanel/Sidepanel";
@@ -66,6 +67,7 @@ const App = () => {
 
               <Routes>
               <Route path="/" element={<Dashboard user={user} />} />
+              <Route path="/chat" element={<ChatBot user={user} />} />
               <Route
                   path="/xml-to-excel"
                   element={

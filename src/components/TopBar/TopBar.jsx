@@ -2,7 +2,10 @@ import PropTypes from 'prop-types';
 import "./TopBar.css";
 import logo from '../../assets/JS.svg';
 
-const TopBar = ({ user, onLogout }) => {
+const TopBar = ({ 
+  user = null, 
+  onLogout, 
+}) => {
   return (
     <div className="topbar">
       <div className="topbar-content">
@@ -35,10 +38,6 @@ TopBar.propTypes = {
     name: PropTypes.string,
   }),
   onLogout: PropTypes.func.isRequired,
-};
-
-TopBar.defaultProps = {
-  user: null,
 };
 
 export default TopBar;
