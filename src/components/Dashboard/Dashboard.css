@@ -3,7 +3,6 @@
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  margin-top: 220px; /* Adjust for the height of the topbar */
 }
 
 .dashboard-content {
@@ -107,6 +106,5 @@
     
   }
   .dashboard-layout {
-    margin-top: 1275px;
-  }
+    margin-top: 1000px;  }
 }
