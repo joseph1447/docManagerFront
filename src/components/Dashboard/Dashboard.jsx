@@ -10,7 +10,7 @@ const portfolio = [
   {
     id: 1,
     proyecto: "E-commerce Platform for Bromley Ski Resort",
-    cliente: "Bromley Ski Resort",
+    cliente: "Dirigo Valley Systems",
     imagenes: [
       BromleyLaptop,
       BromleyMobile,
@@ -23,15 +23,6 @@ const portfolio = [
   },
   {
     id: 2,
-    proyecto: "Portfolio Website",
-    cliente: "Freelancer",
-    imagenes: ["https://via.placeholder.com/300x200?text=Portfolio+Website"],
-    techStack: ["HTML", "CSS", "JavaScript"],
-    descripcion: "A clean and responsive portfolio website to showcase personal projects.",
-    link: "https://freelancerportfolio.com",
-  },
-  {
-    id: 3,
     proyecto: "Leidy Mar Apartments Online Store",
     cliente: "Leidy Mar Apartments",
     imagenes:  [
