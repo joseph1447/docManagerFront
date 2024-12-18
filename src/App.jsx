@@ -73,7 +73,7 @@ const App = () => {
       <Router>
         <div className="app-container">
           {/* TopBar */}
-          <TopBar user={user} onLogout={handleLogout} />
+          <TopBar user={user} onLogout={handleLogout} onLoginSuccess={handleLoginSuccess} />
 
             {/* SidePanel */}
             <SidePanel />
@@ -109,8 +109,12 @@ const LoginPrompt = ({ onLoginSuccess }) => {
 };
   return (
     <div className="login-prompt">
-      <h2>Please log in to access the dashboard</h2>
-      <button onClick={() => login()}>Sign in with Google</button>
+      <h2>Please log in </h2>
+      
+      <button className="google-button"  onClick={() => login()}>
+          <span className="google-icon"></span>
+          <span className="button-text">Login with Google</span>
+      </button>
     </div>
   );
 };

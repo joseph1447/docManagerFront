@@ -1,11 +1,18 @@
 import PropTypes from 'prop-types';
 import "./TopBar.css";
 import logo from '../../assets/JS.svg';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const TopBar = ({ 
   user = null, 
   onLogout, 
+  onLoginSuccess
 }) => {
+  const login = useGoogleLogin({
+    onSuccess: onLoginSuccess,
+    onError: () => alert("Login failed. Please try again."),
+  });
+
   return (
     <div className="topbar">
       <div className="topbar-content">
@@ -25,7 +32,10 @@ const TopBar = ({
             </button>
           </div>
         ) : (
-          <span>Please log in</span>
+          <button className="google-button"  onClick={login}>
+          <span className="google-icon"></span>
+          <span className="button-text">Login with Google</span>
+          </button>
         )}
       </div>
     </div>
@@ -38,6 +48,7 @@ TopBar.propTypes = {
     name: PropTypes.string,
   }),
   onLogout: PropTypes.func.isRequired,
+  onLoginSuccess: PropTypes.func.isRequired,
 };
 
 export default TopBar;
