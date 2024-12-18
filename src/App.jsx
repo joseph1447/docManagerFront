@@ -38,9 +38,22 @@ const App = () => {
   
       const userData = await response.json(); // Parse the user data
       console.log(userData); // Now you have the user data
-  
+
+    //validating user in Database
+
+            // Enviar token a tu backend para autenticación
+            const APIresponse = await fetch("http://localhost:3000/auth/google", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userData }),
+            });            
+      
+     const apiData = await APIresponse.json();
+    
+      //apiData.message : ususario validado con exito
+      
       // You can set the user data in the state if needed
-      setUser(userData);
+      setUser(apiData.user);
 
       localStorage.setItem("user", JSON.stringify(userData));
 
