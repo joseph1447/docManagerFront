@@ -42,7 +42,7 @@ const App = () => {
     //validating user in Database
 
             // Enviar token a tu backend para autenticación
-            const APIresponse = await fetch("http://localhost:3000/auth/google", {
+            const APIresponse = await fetch("https://docmanagerapi.onrender.com/auth/google", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ userData }),
