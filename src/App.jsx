@@ -51,9 +51,9 @@ const App = () => {
      const apiData = await APIresponse.json();
     
       //apiData.message : ususario validado con exito
-      
+      console.info(apiData.message)
       // You can set the user data in the state if needed
-      setUser(apiData.user);
+      setUser(userData);
 
       localStorage.setItem("user", JSON.stringify(userData));
 
@@ -80,7 +80,17 @@ const App = () => {
 
               <Routes>
               <Route path="/" element={<Dashboard user={user} />} />
-              <Route path="/chat" element={<ChatBot user={user} />} />
+              <Route
+                  path="/chat"
+                  element={
+                    user ? (
+                      <ChatBot user={user}/>
+                    ) : (
+                      <LoginPrompt onLoginSuccess={handleLoginSuccess} />
+                    )
+                  }
+                />
+
               <Route
                   path="/xml-to-excel"
                   element={

@@ -35,9 +35,10 @@ const ChatBot = () => {
     setIsAIThinking(true);
 
     try {
-      const env = import.meta.env.VITE_Enviroment_BaseURL;
+      // const env = import.meta.env.VITE_Enviroment_BaseURL;
 
-      const baseUrl = env === 'Dev' ? 'http://localhost:3000' : 'https://docmanagerapi.onrender.com';
+      // const baseUrl = env === 'Dev' ? 'http://localhost:3000' : 'https://docmanagerapi.onrender.com';
+      const baseUrl = 'https://docmanagerapi.onrender.com';
 
       // Genera un tiempo de espera aleatorio entre 0 y 10 segundos
       const waitTime = Math.random() * 10000; // 10000 ms = 10 segundos
