@@ -16,6 +16,7 @@
     "@mui/icons-material": "^6.1.8",
     "@mui/material": "^6.1.8",
     "@react-oauth/google": "^0.12.1",
+    "axios": "^1.7.9",
     "docmanagerfront": "file:",
     "dotenv": "^16.4.5",
     "js-jwt": "^0.2.7",

@@ -6,6 +6,8 @@ import BromleyLaptop from '../../assets/BromleyLaptop.png'
 import BromleyMobile from '../../assets/BromleyMobile.png'
 import LeyMarLaptop from '../../assets/LeyMarLaptop.png'
 import LeyMarMobile from '../../assets/LeyMarMobile.png'
+import SurfshowLaptop from '../../assets/SurfshowLaptop.png'
+import SurfshowMobile from '../../assets/SurfshowMobile.png'
 const portfolio = [
   {
     id: 1,
@@ -23,7 +25,7 @@ const portfolio = [
   },
   {
     id: 2,
-    proyecto: "Leidy Mar Apartments Online Store",
+    proyecto: "Leidy Mar Apartments Booking",
     cliente: "Leidy Mar Apartments",
     imagenes:  [
       LeyMarLaptop,
@@ -32,6 +34,18 @@ const portfolio = [
     techStack: ["Shopify", "Liquid", "Stripe", "PayPal"],
     descripcion: "Designed and configured an online store with reservation apps and payment solutions for streamlined user experience.",
     link: "https://leidymar-apartments.com",
+  },
+  {
+    id: 3,
+    proyecto: "Santa teresa Surf Show and Surfcam",
+    cliente: "Santa Teresa Surf show",
+    imagenes:  [
+      SurfshowLaptop,
+      SurfshowMobile,
+    ],
+    techStack: ["Shopify", "Liquid", "Stripe", "PayPal"],
+    descripcion: "Designed and configured an online store with access to a Surfcam",
+    link: "https://santateresasurfshow.com",
   },
   // Add more projects as needed
 ];

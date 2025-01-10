@@ -36,11 +36,8 @@ const XmlToExcel = () => {
     files.forEach((file) => formData.append("files", file));
 
     try {
-     // const env = import.meta.env.VITE_Enviroment_BaseURL;
-
-     // const baseUrl = env === 'Dev' ? 'http://localhost:3000' : 'https://docmanagerapi.onrender.com';
-      const baseUrl = 'https://docmanagerapi.onrender.com';
-      const response = await fetch(
+     const baseUrl = import.meta.env.VITE_API_URL;
+     const response = await fetch(
         `${baseUrl}/upload`,
         {
           method: "POST",

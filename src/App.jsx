@@ -5,11 +5,12 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import Legal from "./components/Legal/Legal";
 import TopBar from "./components/TopBar/TopBar";
 import ChatBot from "./components/ChatBot/ChatBot";
+import CryptoList from "./components/CryptoList/CryptoList";
 import XmlToExcel from "./components/XmlToExcel/XmlToExcel";
 import PropTypes from 'prop-types';
 import SidePanel from "./components/SidePanel/Sidepanel";
 import "./App.css";
-
+const baseUrl = import.meta.env.VITE_API_URL;
 const App = () => {
   const [user, setUser] = useState(() => {
     // Restaurar sesión desde localStorage al inicializar
@@ -39,10 +40,9 @@ const App = () => {
       const userData = await response.json(); // Parse the user data
       console.log(userData); // Now you have the user data
 
-    //validating user in Database
-
+            //validating user in Database
             // Enviar token a tu backend para autenticación
-            const APIresponse = await fetch("https://docmanagerapi.onrender.com/auth/google", {
+            const APIresponse = await fetch(baseUrl+'/auth/google', {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ userData }),
@@ -90,7 +90,16 @@ const App = () => {
                     )
                   }
                 />
-
+              <Route
+                  path="/crypto"
+                  element={
+                    user ? (
+                      <CryptoList user={user}/>
+                    ) : (
+                      <LoginPrompt onLoginSuccess={handleLoginSuccess} />
+                    )
+                  }
+                />
               <Route
                   path="/xml-to-excel"
                   element={
