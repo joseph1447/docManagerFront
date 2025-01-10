@@ -6,13 +6,13 @@ import "./XmlToExcel.css";
 
 const XmlToExcel = () => {
   const [files, setFiles] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
       "application/xml": [".xml"],
     },
     onDrop: (acceptedFiles, rejectedFiles) => {
-      // Notificar archivos rechazados
       if (rejectedFiles.length > 0) {
         rejectedFiles.forEach((file) => {
           toast.error(
@@ -20,8 +20,6 @@ const XmlToExcel = () => {
           );
         });
       }
-
-      // Actualizar solo con archivos válidos
       setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
     },
   });
@@ -32,18 +30,17 @@ const XmlToExcel = () => {
       return;
     }
 
+    setIsLoading(true);
+
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
 
     try {
-     const baseUrl = import.meta.env.VITE_API_URL;
-     const response = await fetch(
-        `${baseUrl}/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const baseUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${baseUrl}/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -64,29 +61,51 @@ const XmlToExcel = () => {
       toast.error(
         `Error al procesar los archivos: ${error.message || "Desconocido"}`
       );
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleClearFiles = () => {
+    setFiles([]);
+    toast.info("Archivos eliminados.");
   };
 
   return (
     <div className="tool-container">
       <ToastContainer />
       <h1 className="tool-title">Convertir XML a Excel</h1>
-      <div {...getRootProps({ className: "dropzone" })}>
-        <input {...getInputProps()} />
-        <p>Arrastra tus archivos XML aquí o haz clic para seleccionarlos</p>
-      </div>
-      <ul className="file-list">
-        {files.map((file, index) => (
-          <li key={index} className="file-item">
-            {file.name}
-          </li>
-        ))}
-      </ul>
-      {files.length > 0 && (
-        <button className="generate-btn" onClick={handleGenerateExcel}>
-          Generar Excel Unificado
-        </button>
+      {files.length === 0 ? (
+        <div {...getRootProps({ className: "dropzone" })}>
+          <input {...getInputProps()} />
+          <p>Arrastra tus archivos XML aquí o haz clic para seleccionarlos</p>
+        </div>
+      ) : (
+        <ul className="file-list">
+          {files.map((file, index) => (
+            <li key={index} className="file-item">
+              <span className="file-icon">📄</span>
+              <span className="file-name">{file.name}</span>
+            </li>
+          ))}
+        </ul>
       )}
+      <div className="button-container">
+        {files.length > 0 && (
+          <>
+            <button
+              className="generate-btn"
+              onClick={handleGenerateExcel}
+              disabled={isLoading}
+            >
+              {isLoading ? "Procesando..." : "Generar Excel Unificado"}
+            </button>
+            <button className="clear-btn" onClick={handleClearFiles}>
+              Limpiar Archivos
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };

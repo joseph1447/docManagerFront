@@ -1,49 +1,109 @@
 .tool-container {
   display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      width: 80%;
-      margin-top: -350px;
-  }
- 
-  
-  
-  .tool-title {
-    font-size: 1.8rem;
-    margin-bottom: 15px;
-  }
-  
-  .dropzone {
-    border: 2px dashed #007bff;
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    margin-bottom: 20px;
-    background: #f9f9f9;
-  }
-  
-  .file-list {
-    list-style: none;
-    padding: 0;
-    margin-bottom: 20px;
-  }
-  
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  width: 80%;
+  margin-top: 80px; /* Asegura que no se superponga con el top bar */
+}
+
+.dropzone {
+  border: 2px dashed #007bff;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 20px;
+  background: #f9f9f9;
+}
+
+.file-list {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 10px;
+  background: #f0f4f8;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  list-style: none;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  color: #333;
+  transition: box-shadow 0.3s ease;
+}
+
+.file-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.file-icon {
+  margin-right: 10px;
+  font-size: 20px;
+  color: #007bff;
+}
+
+.file-name {
+  word-break: break-word;
+  flex-grow: 1;
+}
+
+.button-container {
+  display: flex;
+  gap: 10px;
+}
+
+.generate-btn,
+.clear-btn {
+  background: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.generate-btn:hover {
+  background: #218838;
+}
+
+.clear-btn {
+  background: #dc3545;
+}
+
+.clear-btn:hover {
+  background: #c82333;
+}
+
+@media (max-width: 768px) {
   .file-item {
-    margin-bottom: 5px;
+    font-size: 14px;
+    padding: 8px;
   }
-  
-  .generate-btn {
-    background: #28a745;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+
+  .file-icon {
+    font-size: 18px;
   }
-  
-  .generate-btn:hover {
-    background: #218838;
+
+  .file-list {
+    padding: 5px;
   }
-  
+
+  .button-container {
+    flex-direction: column;
+  }
+
+  .generate-btn,
+  .clear-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
