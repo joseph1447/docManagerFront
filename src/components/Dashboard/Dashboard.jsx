@@ -1,7 +1,7 @@
 import "./Dashboard.css";
 import  { useState,useEffect } from "react";
 import PropTypes from "prop-types";
-import { FaDownload } from "react-icons/fa"; // Importa el icono de descarga
+import { FaDownload,FaEnvelope } from "react-icons/fa"; // Importa el icono de descarga
 
 import BromleyLaptop from '../../assets/BromleyLaptop.png'
 import BromleyMobile from '../../assets/BromleyMobile.png'
@@ -80,12 +80,21 @@ const Dashboard = () => {
                   <div className="header-section">
                       <h2>Welcome to My Portfolio!</h2>
                       <a
-                        href="/cv/Fullstack_Developer.docx" // Reemplaza con la ruta correcta a tu archivo .doc
+                        href="/cv/Fullstack_Developer.docx" 
                         download="Joseph_Quesada_Fullstack_Developer.docx"  // Nombre del archivo que se descargará
                         className="download-cv-button"
                       >
                        <FaDownload /> Download Fullstack_Developer CV
                     </a>
+<br></br>
+
+                    <a
+                        href="https://form.typeform.com/to/bragL3rq" 
+                        className="download-cv-button"
+                      >
+                       <FaEnvelope /> Contact Me
+                    </a>
+
                   </div>
                   <p>Explore my projects below:</p>
                   <div className="portfolio-grid">
@@ -102,6 +111,7 @@ const Dashboard = () => {
                           </div>
                       ))}
                   </div>
+                  <div data-tf-live="01JP58Y5XT31N5CN0WPZBK2S7W"></div><script src="//embed.typeform.com/next/embed.js"></script>
               </main>
           </div>
       </div>
