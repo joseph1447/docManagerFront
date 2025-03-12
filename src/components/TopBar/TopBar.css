@@ -29,7 +29,8 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  max-width: 1200px; /* Ajuste centrado para pantallas grandes */
+ /*  max-width: 1200px; /* Ajuste centrado para pantallas grandes */
+ padding-right: 25px;
 }
 
 /* User info section */

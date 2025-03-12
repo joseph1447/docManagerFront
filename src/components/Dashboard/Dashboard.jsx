@@ -1,6 +1,7 @@
 import "./Dashboard.css";
 import  { useState,useEffect } from "react";
 import PropTypes from "prop-types";
+import { FaDownload } from "react-icons/fa"; // Importa el icono de descarga
 
 import BromleyLaptop from '../../assets/BromleyLaptop.png'
 import BromleyMobile from '../../assets/BromleyMobile.png'
@@ -72,27 +73,38 @@ ImageSlider.propTypes = {
 };
 const Dashboard = () => {
   return (
-    <div className="dashboard-layout">
-      {/* Main Content */}
-      <main className="dashboard-content">
-        <h2>Welcome to My Portfolio!</h2>
-        <p>Explore my projects below:</p>
-        <div className="portfolio-grid">
-          {portfolio.map((project) => (
-            <div key={project.id} className="portfolio-card">
-              <h3>{project.proyecto}</h3>
-              <p><strong>Client:</strong> {project.cliente}</p>
-              <ImageSlider images={project.imagenes} />
-              <p><strong>Tech Stack:</strong> {project.techStack.join(", ")}</p>
-              <p>{project.descripcion}</p>
-              <a href={project.link} target="_blank" rel="noopener noreferrer" className="portfolio-link">
-                Visit Project
-              </a>
-            </div>
-          ))}
-        </div>
-      </main>
-    </div>
+      <div className="dashboard-container">
+          <div className="dashboard-layout">
+              {/* Main Content */}
+              <main className="dashboard-content">
+                  <div className="header-section">
+                      <h2>Welcome to My Portfolio!</h2>
+                      <a
+                        href="/cv/Fullstack_Developer.docx" // Reemplaza con la ruta correcta a tu archivo .doc
+                        download="Joseph_Quesada_Fullstack_Developer.docx"  // Nombre del archivo que se descargará
+                        className="download-cv-button"
+                      >
+                       <FaDownload /> Download Fullstack_Developer CV
+                    </a>
+                  </div>
+                  <p>Explore my projects below:</p>
+                  <div className="portfolio-grid">
+                      {portfolio.map((project) => (
+                          <div key={project.id} className="portfolio-card">
+                              <h3>{project.proyecto}</h3>
+                              <p><strong>Client:</strong> {project.cliente}</p>
+                              <ImageSlider images={project.imagenes} />
+                              <p><strong>Tech Stack:</strong> {project.techStack.join(", ")}</p>
+                              <p>{project.descripcion}</p>
+                              <a href={project.link} target="_blank" rel="noopener noreferrer" className="portfolio-link">
+                                  Visit Project
+                              </a>
+                          </div>
+                      ))}
+                  </div>
+              </main>
+          </div>
+      </div>
   );
 };
 

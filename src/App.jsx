@@ -71,9 +71,10 @@ const App = () => {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <Router>
+      <TopBar user={user} onLogout={handleLogout} onLoginSuccess={handleLoginSuccess} />
+
         <div className="app-container">
           {/* TopBar */}
-          <TopBar user={user} onLogout={handleLogout} onLoginSuccess={handleLoginSuccess} />
 
             {/* SidePanel */}
             <SidePanel />
