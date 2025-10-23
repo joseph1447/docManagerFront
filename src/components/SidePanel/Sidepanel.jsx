@@ -8,9 +8,9 @@ const SidePanel = () => {
 
   const menuItems = [
     { path: "/", icon: <FaHome />, label: "Dashboard" },
-    { path: "/xml-to-excel", icon: <FaBookReader />, label: "XML To Excel" },
-    { path: "/chat", icon: <FaRobot />, label: "AI ChatBot" },
-    { path: "/crypto", icon: <FaBitcoin />, label: "Top Cryptos to Buy" },
+    { path: "/admin/xml-to-excel", icon: <FaBookReader />, label: "XML To Excel" },
+    { path: "/admin/chat", icon: <FaRobot />, label: "AI ChatBot" },
+    { path: "/admin/crypto", icon: <FaBitcoin />, label: "Top Cryptos to Buy" },
     { path: "/legal", icon: <FaLock />, label: "Política de Privacidad" },
     // Agrega más opciones aquí
   ];

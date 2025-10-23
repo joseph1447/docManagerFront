@@ -7,8 +7,8 @@ import TopBar from "./components/TopBar/TopBar";
 import ChatBot from "./components/ChatBot/ChatBot";
 import CryptoList from "./components/CryptoList/CryptoList";
 import XmlToExcel from "./components/XmlToExcel/XmlToExcel";
+import AdminLayout from "./components/AdminLayout/AdminLayout";
 import PropTypes from 'prop-types';
-import SidePanel from "./components/SidePanel/Sidepanel";
 import "./App.css";
 const baseUrl = import.meta.env.VITE_API_URL;
 const App = () => {
@@ -76,13 +76,14 @@ const App = () => {
         <div className="app-container">
           {/* TopBar */}
 
-            {/* SidePanel */}
-            <SidePanel />
-
               <Routes>
               <Route path="/" element={<Dashboard user={user} />} />
-              <Route
-                  path="/chat"
+              <Route path="/legal" element={<Legal />} />
+              
+              {/* Admin Layout Routes - with side panel */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route
+                  path="chat"
                   element={
                     user ? (
                       <ChatBot user={user}/>
@@ -91,8 +92,8 @@ const App = () => {
                     )
                   }
                 />
-              <Route
-                  path="/crypto"
+                <Route
+                  path="crypto"
                   element={
                     user ? (
                       <CryptoList user={user}/>
@@ -101,8 +102,8 @@ const App = () => {
                     )
                   }
                 />
-              <Route
-                  path="/xml-to-excel"
+                <Route
+                  path="xml-to-excel"
                   element={
                     user ? (
                       <XmlToExcel/>
@@ -111,8 +112,40 @@ const App = () => {
                     )
                   }
                 />
-                <Route path="/legal" element={<Legal />} />
-                </Routes>
+              </Route>
+              
+              {/* Legacy routes for backward compatibility */}
+              <Route
+                path="/chat"
+                element={
+                  user ? (
+                    <ChatBot user={user}/>
+                  ) : (
+                    <LoginPrompt onLoginSuccess={handleLoginSuccess} />
+                  )
+                }
+              />
+              <Route
+                path="/crypto"
+                element={
+                  user ? (
+                    <CryptoList user={user}/>
+                  ) : (
+                    <LoginPrompt onLoginSuccess={handleLoginSuccess} />
+                  )
+                }
+              />
+              <Route
+                path="/xml-to-excel"
+                element={
+                  user ? (
+                    <XmlToExcel/>
+                  ) : (
+                    <LoginPrompt onLoginSuccess={handleLoginSuccess} />
+                  )
+                }
+              />
+              </Routes>
           </div>
       </Router>
     </GoogleOAuthProvider>
