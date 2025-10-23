@@ -53,28 +53,28 @@ const skills = [
 const experience = [
   {
     company: "MarketerHire",
-    position: "Desarrollador Fullstack",
-    period: "SEPTIEMBRE 2025 — Presente",
+    position: "Fullstack Developer",
+    period: "SEPTEMBER 2025 — Present",
     location: "USA",
-    description: "Gestiono operaciones de desarrollo de extremo a extremo para una plataforma de marketplace de talento que conecta profesionales de marketing de élite con empresas líderes.",
+    description: "I manage end-to-end development operations for a talent marketplace platform that connects elite marketing professionals with leading companies.",
     achievements: [
-      "Desarrollo Full-Stack con SvelteKit, TypeScript, Node.js y PostgreSQL",
-      "Entrega rápida de landing pages con pipeline Figma-a-Cursor-a-Vercel",
-      "Gestión de plataformas empresariales y automatización de workflows",
-      "Liderazgo de iniciativas de desarrollo de Salute Team Labs"
+      "Full-Stack development with SvelteKit, TypeScript, Node.js and PostgreSQL",
+      "Rapid landing page delivery with optimized Figma-to-Cursor-to-Vercel pipeline",
+      "Enterprise platform management and workflow automation",
+      "Leadership of development teams"
     ]
   },
   {
     company: "Dirigo Valley Systems",
-    position: "Ingeniero de Software Senior",
-    period: "MAYO 2019 — Presente",
+    position: "Senior Software Engineer",
+    period: "MAY 2019 — Present",
     location: "USA",
-    description: "Desarrollo y mantengo aplicaciones de comercio electrónico, enfocándome en la selección de variantes de productos y validación de datos en tiempo real.",
+    description: "I develop and maintain e-commerce applications, focusing on product variant selection and real-time data validation.",
     achievements: [
-      "Contribución al desarrollo de aplicaciones para Bromley Ski Resort",
-      "Migración de infraestructura on-premises a Azure Cloud",
-      "Integración de IA para servicios de datos con OpenAI",
-      "Integración de pasarelas de pago seguras (Stripe, Google Pay, Apple Pay)"
+      "Contribution to e-commerce application development for Bromley Ski Resort",
+      "On-premises infrastructure migration to Azure Cloud",
+      "AI integration for data services with OpenAI",
+      "Secure payment gateway integration (Stripe, Google Pay, Apple Pay)"
     ]
   }
 ];
@@ -130,7 +130,7 @@ const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('hero');
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
-    return savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return savedTheme === 'light' ? false : true; // Default to dark theme
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -242,7 +242,7 @@ const Dashboard = () => {
           <div className="about-grid">
             <div className="about-text">
               <p className="about-description">
-                Desarrollador Fullstack con más de 9 años de experiencia y sólida formación en .NET, JavaScript/TypeScript e infraestructura en la nube moderna. Experto en la construcción de aplicaciones web escalables, gestión de flujos de trabajo empresariales e integración de plataformas de terceros.
+                Fullstack Developer with over 9 years of experience and solid background in .NET, JavaScript/TypeScript and modern cloud infrastructure. Expert in building scalable web applications, enterprise workflow management and third-party platform integration.
               </p>
               <div className="contact-info">
                 <div className="contact-item">
@@ -254,7 +254,7 @@ const Dashboard = () => {
                   <span>Costa Rica</span>
                 </div>
                 <div className="contact-item">
-                  <span>Teléfono: +506 83161976</span>
+                  <span>Phone: +506 83161976</span>
                 </div>
               </div>
             </div>
