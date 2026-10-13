@@ -14,11 +14,17 @@ import {
 } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 import "./XmlToExcel.css";
-import { uploadXmlFiles, MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
+import { processXmlFiles, MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
 import { addFiles, applyReport, markSent, sendableItems, formatSize } from "./fileSelection";
 import { buildFeedbackReport } from "./feedbackReport";
 
 const SLOW_SERVER_MS = 8000;
+
+const PHASE_HINT = {
+  waking: "El servidor estaba inactivo y está despertando; puede tardar hasta un minuto. No cierres esta página.",
+  uploading: "Con muchos archivos esto puede tardar unos minutos. No cierres esta página.",
+  retrying: "La conexión falló; se está reintentando automáticamente. No cierres esta página.",
+};
 
 const STATUS = {
   pending: { label: "Pendiente", Icon: FaRegClock },
@@ -220,8 +226,14 @@ RunSummary.propTypes = {
 const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [phase, setPhase] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lastRun, setLastRun] = useState(null);
+
+  // Render's free plan sleeps when idle: start waking it while the user picks the files.
+  useEffect(() => {
+    if (apiUrl) globalThis.fetch(`${apiUrl}/`).catch(() => {});
+  }, [apiUrl]);
 
   useEffect(() => {
     if (!isLoading) return undefined;
@@ -265,7 +277,10 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
     setItems((prev) => markSent(prev, sentIds, "pending"));
 
     try {
-      const { excel, report, requestId } = await uploadXmlFiles(toSend.map((item) => item.file), { baseUrl: apiUrl });
+      const { excel, report, requestId } = await processXmlFiles(toSend.map((item) => item.file), {
+        baseUrl: apiUrl,
+        onPhase: setPhase,
+      });
       downloadBlob(excel.blob, excel.fileName);
 
       if (!report) {
@@ -294,6 +309,7 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
       toast.error(error.message);
     } finally {
       setIsLoading(false);
+      setPhase(null);
     }
   };
 
@@ -362,10 +378,9 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
         </>
       )}
 
-      {isLoading && isSlow && (
+      {isLoading && (phase === "retrying" || isSlow) && (
         <p className="slow-hint" role="status">
-          Con muchos archivos esto puede tardar unos minutos, y si el servidor estaba inactivo tarda hasta un minuto
-          más en despertar. No cierres esta página.
+          {PHASE_HINT[phase] ?? PHASE_HINT.uploading}
         </p>
       )}
 
@@ -379,7 +394,7 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
               disabled={isLoading || toSend.length === 0}
             >
               {isLoading
-                ? `Procesando ${toSend.length} archivo${toSend.length === 1 ? "" : "s"}…${elapsedSeconds > 0 ? ` ${elapsedSeconds} s` : ""}`
+                ? `${phase === "waking" ? "Conectando con el servidor" : phase === "retrying" ? "Reintentando" : `Procesando ${toSend.length} archivo${toSend.length === 1 ? "" : "s"}`}…${elapsedSeconds > 0 ? ` ${elapsedSeconds} s` : ""}`
                 : "Generar Excel Unificado"}
             </button>
             {errorCount > 0 && (

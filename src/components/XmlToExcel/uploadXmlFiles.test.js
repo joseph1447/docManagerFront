@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { uploadXmlFiles, UploadError, timeoutFor } from "./uploadXmlFiles";
+import { uploadXmlFiles, UploadError, timeoutFor, wakeUpServer, processXmlFiles } from "./uploadXmlFiles";
 import { xmlFile, jsonResponse, okEntry, errorEntry, successBody, summarize } from "../../test/factories";
 
 const BASE = "http://api.test";
@@ -103,13 +103,72 @@ describe("uploadXmlFiles", () => {
   });
 
   it("default timeout grows with the number of files", () => {
-    expect(timeoutFor(1)).toBe(121_000);
-    expect(timeoutFor(1000)).toBe(1_120_000);
+    expect(timeoutFor(1)).toBe(60_500);
+    expect(timeoutFor(190)).toBe(155_000);
   });
 
   it("missing VITE_API_URL -> CONFIG_MISSING_API_URL without calling fetch", async () => {
     const fetchImpl = vi.fn();
     await expectUploadError(uploadXmlFiles(files, { baseUrl: "", fetchImpl }), { code: "CONFIG_MISSING_API_URL" });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+const pong = () => new Response('{"API":"DocManagerAPI"}', { status: 200 });
+
+describe("wakeUpServer", () => {
+  it("keeps pinging GET / until the server answers (Render waking up)", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(new Response("", { status: 503 }))
+      .mockResolvedValueOnce(pong());
+    await wakeUpServer(BASE, { fetchImpl, timeoutMs: 5_000, retryDelayMs: 1 });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(fetchImpl.mock.calls[0][0]).toBe(`${BASE}/`);
+  });
+
+  it("gives up with SERVER_UNAVAILABLE and the last reason", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("", { status: 503 }));
+    const error = await expectUploadError(wakeUpServer(BASE, { fetchImpl, timeoutMs: 30, retryDelayMs: 5 }), {
+      code: "SERVER_UNAVAILABLE",
+    });
+    expect(error.details).toMatchObject({ reason: "HTTP 503", url: `${BASE}/` });
+  });
+});
+
+describe("processXmlFiles", () => {
+  const body = () => jsonResponse(successBody([okEntry(0, "a.xml"), okEntry(1, "b.xml")]));
+  const fakeServer = (answerPost) => vi.fn(async (url, init = {}) => (init.method === "POST" ? answerPost() : pong()));
+
+  it("wakes the server, then uploads, reporting each phase", async () => {
+    const phases = [];
+    const fetchImpl = fakeServer(body);
+    const result = await processXmlFiles(files, { baseUrl: BASE, fetchImpl, onPhase: (p) => phases.push(p) });
+    expect(result.report.summary.processed).toBe(2);
+    expect(phases).toEqual(["waking", "uploading"]);
+    expect(fetchImpl.mock.calls.map(([url]) => url)).toEqual([`${BASE}/`, `${BASE}/upload`]);
+  });
+
+  it("retries once after a network error or timeout", async () => {
+    let attempt = 0;
+    const phases = [];
+    const fetchImpl = fakeServer(() => (++attempt === 1 ? Promise.reject(new TypeError("Failed to fetch")) : body()));
+    const result = await processXmlFiles(files, { baseUrl: BASE, fetchImpl, onPhase: (p) => phases.push(p) });
+    expect(result.report.summary.processed).toBe(2);
+    expect(phases).toEqual(["waking", "uploading", "retrying", "uploading"]);
+  });
+
+  it("does not retry errors that would fail again (422) and records the attempts", async () => {
+    const fetchImpl = fakeServer(() => jsonResponse({ error: { code: "NO_VALID_FILES", message: "x", hint: "y" } }, 422));
+    const error = await expectUploadError(processXmlFiles(files, { baseUrl: BASE, fetchImpl }), { code: "NO_VALID_FILES" });
+    expect(fetchImpl.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
+    expect(error.details.attempts).toBe(1);
+  });
+
+  it("stops after the retry when the network keeps failing", async () => {
+    const fetchImpl = fakeServer(() => Promise.reject(new TypeError("Failed to fetch")));
+    const error = await expectUploadError(processXmlFiles(files, { baseUrl: BASE, fetchImpl }), { code: "NETWORK_ERROR" });
+    expect(error.details.attempts).toBe(2);
   });
 });

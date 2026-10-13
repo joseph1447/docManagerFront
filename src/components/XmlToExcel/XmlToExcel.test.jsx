@@ -6,15 +6,21 @@ import { xmlFile, jsonResponse, okEntry, errorEntry, successBody, summarize } fr
 
 const API = "http://api.test";
 
-const setup = (fetchResponse) => {
-  const fetchMock = vi.fn();
-  if (fetchResponse instanceof Error) fetchMock.mockRejectedValue(fetchResponse);
-  else if (fetchResponse) fetchMock.mockResolvedValue(fetchResponse);
+// GET {API}/ is the wake-up ping (always answers); `post` is the POST /upload answer: a Response,
+// an Error to reject with, or a function called on each attempt.
+const setup = (post) => {
+  const answerPost = typeof post === "function" ? post : post instanceof Error ? () => Promise.reject(post) : () => post;
+  const fetchMock = vi.fn(async (url, init = {}) => {
+    if (init.method !== "POST") return new Response('{"API":"DocManagerAPI"}', { status: 200 });
+    if (!post) throw new Error("POST not mocked");
+    return answerPost();
+  });
   vi.stubGlobal("fetch", fetchMock);
   const user = userEvent.setup({ applyAccept: false });
   render(<XmlToExcel apiUrl={API} />);
   const input = screen.getByLabelText("Seleccionar archivos XML");
-  return { user, input, fetchMock };
+  const postCalls = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+  return { user, input, fetchMock, postCalls };
 };
 
 const rowFor = (name) => screen.getAllByTestId("file-item").find((li) => within(li).queryByText(name));
@@ -72,8 +78,8 @@ describe("XmlToExcel", () => {
     expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
   });
 
-  it("network failure -> explains it, keeps the files and allows copying a report", async () => {
-    const { user, input } = setup(new TypeError("Failed to fetch"));
+  it("network failure -> retries once, then explains it, keeps the files and allows copying a report", async () => {
+    const { user, input, postCalls } = setup(new TypeError("Failed to fetch"));
 
     await user.upload(input, [xmlFile("a.xml")]);
     await generate(user);
@@ -82,14 +88,41 @@ describe("XmlToExcel", () => {
     expect(within(alert).getByText("No se pudo conectar con el servidor.")).toBeInTheDocument();
     expect(within(alert).getByText(/NETWORK_ERROR/)).toBeInTheDocument();
     expect(within(rowFor("a.xml")).getByText("Pendiente")).toBeInTheDocument();
+    expect(postCalls()).toHaveLength(2);
 
     // user-event installs a clipboard stub on navigator.
     await user.click(screen.getByRole("button", { name: /Copiar reporte/ }));
-    expect(await navigator.clipboard.readText()).toContain("[NETWORK_ERROR] No se pudo conectar con el servidor.");
+    const report = await navigator.clipboard.readText();
+    expect(report).toContain("[NETWORK_ERROR] No se pudo conectar con el servidor.");
+    expect(report).toContain('"attempts":2');
+  });
+
+  it("a dropped connection is retried automatically and the Excel still arrives", async () => {
+    let attempt = 0;
+    const { user, input, postCalls } = setup(() =>
+      ++attempt === 1 ? Promise.reject(new TypeError("Failed to fetch")) : jsonResponse(successBody([okEntry(0, "a.xml")]))
+    );
+    await user.upload(input, [xmlFile("a.xml")]);
+    await generate(user);
+
+    expect(await screen.findByRole("heading", { name: "Excel generado con el archivo" })).toBeInTheDocument();
+    expect(postCalls()).toHaveLength(2);
+  });
+
+  it("pings the server on load and again right before the upload (Render free plan sleeps)", async () => {
+    const { user, input, fetchMock } = setup(jsonResponse(successBody([okEntry(0, "a.xml")])));
+    expect(fetchMock).toHaveBeenCalledWith(`${API}/`);
+
+    await user.upload(input, [xmlFile("a.xml")]);
+    await generate(user);
+    await screen.findByRole("heading", { name: "Excel generado con el archivo" });
+
+    const urls = fetchMock.mock.calls.map(([url]) => url);
+    expect(urls.slice(-2)).toEqual([`${API}/`, `${API}/upload`]);
   });
 
   it("flags empty / non-XML files before uploading and never sends them", async () => {
-    const { user, input, fetchMock } = setup(jsonResponse(successBody([okEntry(0, "ok.xml")])));
+    const { user, input, postCalls } = setup(jsonResponse(successBody([okEntry(0, "ok.xml")])));
     await user.upload(input, [xmlFile("vacio.xml", ""), new File(["%PDF"], "factura.pdf", { type: "application/pdf" }), xmlFile("ok.xml")]);
 
     expect(await within(rowFor("vacio.xml")).findByText("El archivo está vacío (0 bytes).")).toBeInTheDocument();
@@ -97,7 +130,7 @@ describe("XmlToExcel", () => {
     expect(within(rowFor("factura.pdf")).getByText("Error: no se enviará")).toBeInTheDocument();
 
     await generate(user);
-    const sent = fetchMock.mock.calls[0][1].body.getAll("files").map((f) => f.name);
+    const sent = postCalls()[0][1].body.getAll("files").map((f) => f.name);
     expect(sent).toEqual(["ok.xml"]);
     expect(await screen.findByText(/2 archivos no se enviaron/)).toBeInTheDocument();
   });

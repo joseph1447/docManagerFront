@@ -4,9 +4,11 @@ export const MAX_FILE_SIZE_MB = 20;
 export const EXCEL_FILE_NAME = "resultado.xlsx";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-// Big batches take longer to upload and process (the free Render server is slow), so the
-// timeout grows with the batch: 2 min + 1 s per file.
-export const timeoutFor = (fileCount) => 120_000 + fileCount * 1_000;
+// The server is confirmed awake before uploading (wakeUpServer), so this only covers upload +
+// processing. 190 invoices take ~7 s on Render; the margin is for slow connections.
+export const timeoutFor = (fileCount) => 60_000 + fileCount * 500;
+export const WAKE_UP_TIMEOUT_MS = 90_000;
+const RETRYABLE_CODES = new Set(["NETWORK_ERROR", "TIMEOUT", "SERVER_UNAVAILABLE"]);
 
 const RETRY_HINT = "Intenta de nuevo. Si continúa, usa «Copiar reporte» y envíalo a soporte.";
 const WAKE_UP_HINT =
@@ -134,5 +136,57 @@ export async function uploadXmlFiles(files, { baseUrl = import.meta.env.VITE_API
     });
   } finally {
     clearTimeout(timer);
+  }
+}
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The API runs on Render's free plan, which sleeps after 15 min idle and takes up to a minute to
+ * wake up. A big multipart POST sent while it wakes can be lost and hang until the timeout, so we
+ * wait for a light GET / to answer first. Retries until `timeoutMs`.
+ */
+export async function wakeUpServer(baseUrl = import.meta.env.VITE_API_URL, { fetchImpl = globalThis.fetch, timeoutMs = WAKE_UP_TIMEOUT_MS, retryDelayMs = 3_000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Math.max(1, deadline - Date.now()));
+    try {
+      const response = await fetchImpl(`${baseUrl}/`, { signal: controller.signal });
+      if (response.ok) return;
+      lastError = `HTTP ${response.status}`;
+    } catch (error) {
+      lastError = error.message;
+    } finally {
+      clearTimeout(timer);
+    }
+    if (Date.now() + retryDelayMs < deadline) await wait(retryDelayMs);
+    else break;
+  }
+  throw new UploadError({
+    code: "SERVER_UNAVAILABLE",
+    message: `El servidor no respondió en ${Math.round(timeoutMs / 1000)} segundos.`,
+    hint: "Puede estar caído o en mantenimiento, o tu conexión a internet falló. Intenta de nuevo en unos minutos; si continúa, usa «Copiar reporte» y envíalo a soporte.",
+    details: { reason: lastError, url: `${baseUrl}/` },
+  });
+}
+
+/**
+ * Wakes the server, uploads, and retries once on network errors/timeouts (processing is
+ * stateless, so repeating it is safe). onPhase receives "waking" | "uploading" | "retrying".
+ */
+export async function processXmlFiles(files, { baseUrl = import.meta.env.VITE_API_URL, fetchImpl = globalThis.fetch, onPhase = () => {}, retries = 1, wakeTimeoutMs, retryDelayMs, timeoutMs } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    onPhase(attempt === 0 ? "waking" : "retrying");
+    if (baseUrl) await wakeUpServer(baseUrl, { fetchImpl, timeoutMs: wakeTimeoutMs, retryDelayMs });
+    onPhase("uploading");
+    try {
+      return await uploadXmlFiles(files, { baseUrl, fetchImpl, timeoutMs });
+    } catch (error) {
+      if (attempt < retries && RETRYABLE_CODES.has(error.code)) continue;
+      error.details = { ...error.details, attempts: attempt + 1 };
+      throw error;
+    }
   }
 }
