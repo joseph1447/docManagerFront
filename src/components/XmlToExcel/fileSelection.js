@@ -1,4 +1,6 @@
-import { MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
+// Files are processed in the browser, so there is no count limit. This only stops a huge file
+// added by mistake from freezing the tab (an invoice XML weighs a few KB).
+export const MAX_FILE_SIZE_MB = 50;
 
 const fileId = (file) => `${file.name}::${file.size}::${file.lastModified}`;
 
@@ -28,8 +30,8 @@ const validateFile = (file) => {
   if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
     return clientError(
       "FILE_TOO_LARGE",
-      `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB y el máximo es ${MAX_FILE_SIZE_MB} MB.`,
-      "Un XML de factura normalmente pesa menos de 1 MB; verifica que sea el archivo correcto."
+      `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB; es demasiado grande para ser una factura (máximo ${MAX_FILE_SIZE_MB} MB).`,
+      "Un XML de factura pesa unos pocos KB; verifica que sea el archivo correcto."
     );
   }
   return null;
@@ -37,7 +39,7 @@ const validateFile = (file) => {
 
 /**
  * Merges newly dropped files into the list. Files that fail local checks are kept in the list
- * with status "error" (so the user sees why) but are never sent to the server.
+ * with status "error" (so the user sees why) but are never processed.
  * @returns {{ items: object[], notices: string[] }}
  */
 export function addFiles(items, acceptedFiles, rejectedFiles = []) {
@@ -70,13 +72,13 @@ export function addFiles(items, acceptedFiles, rejectedFiles = []) {
 export const sendableItems = (items) => items.filter((item) => item.origin !== "client");
 
 /**
- * Applies the API per-file report to the items that were sent (report.files[i].index = position sent).
+ * Applies the per-file report to the items that were processed (report.files[i].index = position in the batch).
  */
-export function applyReport(items, sentIds, report) {
+export function applyReport(items, processedIds, report) {
   if (!report?.files) return items;
   const byId = new Map();
   report.files.forEach((entry) => {
-    const id = sentIds[entry.index];
+    const id = processedIds[entry.index];
     if (id) byId.set(id, entry);
   });
   return items.map((item) => {
@@ -85,7 +87,7 @@ export function applyReport(items, sentIds, report) {
     return {
       ...item,
       status: entry.status,
-      origin: "server",
+      origin: "processed",
       error: entry.error ?? null,
       warnings: entry.warnings ?? [],
       meta: {
@@ -98,7 +100,7 @@ export function applyReport(items, sentIds, report) {
   });
 }
 
-export const markSent = (items, sentIds, status) =>
-  items.map((item) => (sentIds.includes(item.id) ? { ...item, status, origin: null, error: null, warnings: [], meta: null } : item));
+export const markSent = (items, ids, status) =>
+  items.map((item) => (ids.includes(item.id) ? { ...item, status, origin: null, error: null, warnings: [], meta: null } : item));
 
 export const formatSize = (bytes) => (bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);

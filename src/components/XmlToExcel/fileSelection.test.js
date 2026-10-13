@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addFiles, applyReport, sendableItems, markSent, formatSize } from "./fileSelection";
-import { MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
+import { addFiles, applyReport, sendableItems, markSent, formatSize, MAX_FILE_SIZE_MB } from "./fileSelection";
 import { xmlFile, okEntry, errorEntry } from "../../test/factories";
 
 describe("addFiles", () => {
@@ -54,7 +53,7 @@ describe("addFiles", () => {
 });
 
 describe("applyReport", () => {
-  it("maps API entries to the items that were sent, by index", () => {
+  it("maps report entries to the items that were processed, by index", () => {
     const { items } = addFiles([], [xmlFile("vacio.xml", ""), xmlFile("a.xml"), xmlFile("b.xml")]);
     const sentIds = sendableItems(items).map((i) => i.id);
     const report = {
@@ -64,8 +63,8 @@ describe("applyReport", () => {
     const updated = applyReport(items, sentIds, report);
     expect(updated.map((i) => [i.name, i.status, i.origin])).toEqual([
       ["vacio.xml", "error", "client"],
-      ["a.xml", "ok", "server"],
-      ["b.xml", "error", "server"],
+      ["a.xml", "ok", "processed"],
+      ["b.xml", "error", "processed"],
     ]);
     expect(updated[1].meta.consecutivo).toBe("00100001010000000000");
     expect(updated[2].error.message).toBe("Es la respuesta de Hacienda");

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useDropzone } from "react-dropzone";
 import { ToastContainer, toast } from "react-toastify";
@@ -10,26 +10,16 @@ import {
   FaTimes,
   FaCopy,
   FaCloudUploadAlt,
-  FaInfoCircle,
 } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 import "./XmlToExcel.css";
-import { processXmlFiles, MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
+import { processInvoices, loadExcelJS } from "./processing/processInvoices";
 import { addFiles, applyReport, markSent, sendableItems, formatSize } from "./fileSelection";
 import { buildFeedbackReport } from "./feedbackReport";
-
-const SLOW_SERVER_MS = 8000;
-
-const PHASE_HINT = {
-  waking: "El servidor estaba inactivo y está despertando; puede tardar hasta un minuto. No cierres esta página.",
-  uploading: "Con muchos archivos esto puede tardar unos minutos. No cierres esta página.",
-  retrying: "La conexión falló; se está reintentando automáticamente. No cierres esta página.",
-};
 
 const STATUS = {
   pending: { label: "Pendiente", Icon: FaRegClock },
   processing: { label: "Procesando…", Icon: FaRegClock },
-  sent: { label: "Enviado", Icon: FaInfoCircle },
   ok: { label: "Procesado", Icon: FaCheckCircle },
   warning: { label: "Procesado con advertencias", Icon: FaExclamationTriangle },
   error: { label: "Error: no incluido en el Excel", Icon: FaTimesCircle },
@@ -45,14 +35,6 @@ const downloadBlob = (blob, fileName) => {
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 };
-
-const toPlainError = (error) => ({
-  code: error.code || "CLIENT_ERROR",
-  message: error.message,
-  hint: error.hint || null,
-  status: error.status || null,
-  details: error.details || null,
-});
 
 const IssueDetails = ({ issue, kind }) => (
   <div className={`issue issue--${kind}`}>
@@ -82,10 +64,11 @@ IssueDetails.propTypes = {
   kind: PropTypes.oneOf(["error", "warning"]).isRequired,
 };
 
-const FileRow = ({ item, isProcessing, onRemove }) => {
+// memo: with hundreds of files, progress updates must not re-render every row.
+const FileRow = memo(function FileRow({ item, isProcessing, onRemove }) {
   const statusKey = isProcessing && item.status === "pending" ? "processing" : item.status;
   const { label, Icon } = STATUS[statusKey];
-  const statusLabel = item.status === "error" && item.origin === "client" ? "Error: no se enviará" : label;
+  const statusLabel = item.status === "error" && item.origin === "client" ? "Error: no se procesará" : label;
 
   return (
     <li className={`file-item file-item--${item.status}`} data-testid="file-item">
@@ -117,7 +100,7 @@ const FileRow = ({ item, isProcessing, onRemove }) => {
       ))}
     </li>
   );
-};
+});
 
 FileRow.propTypes = {
   item: PropTypes.shape({
@@ -125,7 +108,7 @@ FileRow.propTypes = {
     name: PropTypes.string.isRequired,
     size: PropTypes.number.isRequired,
     status: PropTypes.oneOf(Object.keys(STATUS)).isRequired,
-    origin: PropTypes.oneOf(["client", "server", null]),
+    origin: PropTypes.oneOf(["client", "processed", null]),
     error: PropTypes.object,
     warnings: PropTypes.array.isRequired,
     meta: PropTypes.object,
@@ -151,20 +134,7 @@ const RunSummary = ({ lastRun, items }) => {
           </p>
         )}
         {failedItems.length > 0 && <p>El motivo de cada archivo aparece en la lista de abajo.</p>}
-        <p className="run-summary-ref">
-          Código: {error.code}
-          {error.status ? ` · HTTP ${error.status}` : ""}
-          {lastRun.requestId ? ` · Ref: ${lastRun.requestId}` : ""}
-        </p>
-      </div>
-    );
-  }
-
-  if (lastRun.legacyApi) {
-    return (
-      <div className="run-summary run-summary--info" role="status">
-        <h2>Excel generado</h2>
-        <p>El servidor no devolvió el detalle por archivo, así que no se puede saber si alguno se omitió.</p>
+        <p className="run-summary-ref">Código: {error.code}</p>
       </div>
     );
   }
@@ -187,7 +157,7 @@ const RunSummary = ({ lastRun, items }) => {
           </p>
           <ul className="run-summary-list">
             {failedItems
-              .filter((item) => item.origin === "server")
+              .filter((item) => item.origin === "processed")
               .map((item) => (
                 <li key={item.id}>
                   <strong>{item.name}</strong>: {item.error?.message}
@@ -204,11 +174,10 @@ const RunSummary = ({ lastRun, items }) => {
       )}
       {notSent > 0 && (
         <p>
-          {notSent === 1 ? "1 archivo no se envió" : `${notSent} archivos no se enviaron`} por errores detectados antes de
-          subirlos.
+          {notSent === 1 ? "1 archivo no se procesó" : `${notSent} archivos no se procesaron`} por errores detectados al
+          agregarlos.
         </p>
       )}
-      {lastRun.requestId && <p className="run-summary-ref">Ref: {lastRun.requestId}</p>}
     </div>
   );
 };
@@ -217,34 +186,20 @@ RunSummary.propTypes = {
   lastRun: PropTypes.shape({
     error: PropTypes.object,
     summary: PropTypes.object,
-    requestId: PropTypes.string,
-    legacyApi: PropTypes.bool,
   }).isRequired,
   items: PropTypes.array.isRequired,
 };
 
-const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
+const XmlToExcel = () => {
   const [items, setItems] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [phase, setPhase] = useState(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [progress, setProgress] = useState(null);
   const [lastRun, setLastRun] = useState(null);
+  const isLoading = progress !== null;
 
-  // Render's free plan sleeps when idle: start waking it while the user picks the files.
+  // Download the Excel library while the user picks the files.
   useEffect(() => {
-    if (apiUrl) globalThis.fetch(`${apiUrl}/`).catch(() => {});
-  }, [apiUrl]);
-
-  useEffect(() => {
-    if (!isLoading) return undefined;
-    const startedAt = Date.now();
-    const timer = setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
-    return () => {
-      clearInterval(timer);
-      setElapsedSeconds(0);
-    };
-  }, [isLoading]);
-  const isSlow = elapsedSeconds * 1000 >= SLOW_SERVER_MS;
+    loadExcelJS().catch(() => {});
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "application/xml": [".xml"] },
@@ -261,59 +216,69 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
     },
   });
 
-  const toSend = sendableItems(items);
+  const toProcess = sendableItems(items);
   const hasIssues = items.some((item) => item.status === "error" || item.status === "warning");
   const errorCount = items.filter((item) => item.status === "error").length;
 
   const handleGenerateExcel = async () => {
-    if (toSend.length === 0) {
-      toast.warning(items.length ? "Ningún archivo válido para enviar: revisa los errores de la lista." : "No hay archivos para procesar.");
+    if (toProcess.length === 0) {
+      toast.warning(items.length ? "Ningún archivo válido para procesar: revisa los errores de la lista." : "No hay archivos para procesar.");
       return;
     }
 
-    const sentIds = toSend.map((item) => item.id);
-    setIsLoading(true);
+    const processedIds = toProcess.map((item) => item.id);
+    setProgress({ done: 0, total: toProcess.length });
     setLastRun(null);
-    setItems((prev) => markSent(prev, sentIds, "pending"));
+    setItems((prev) => markSent(prev, processedIds, "pending"));
 
     try {
-      const { excel, report, requestId } = await processXmlFiles(toSend.map((item) => item.file), {
-        baseUrl: apiUrl,
-        onPhase: setPhase,
-      });
-      downloadBlob(excel.blob, excel.fileName);
+      const { excel, report } = await processInvoices(
+        toProcess.map((item) => item.file),
+        { onProgress: (done, total) => setProgress({ done, total }) }
+      );
+      setItems((prev) => applyReport(prev, processedIds, report));
+      const { failed, processed, total } = report.summary;
 
-      if (!report) {
-        setItems((prev) => markSent(prev, sentIds, "sent"));
-        setLastRun({ legacyApi: true, requestId });
-        toast.success("¡Excel generado!");
+      if (!excel) {
+        setLastRun({
+          summary: report.summary,
+          error: {
+            code: "NO_VALID_FILES",
+            message: total === 1 ? "El archivo no se pudo procesar." : `Ninguno de los ${total} archivos se pudo procesar.`,
+            hint: "Revisa el motivo indicado en cada archivo.",
+            details: null,
+          },
+        });
+        toast.error("Ningún archivo se pudo procesar: revisa la lista.");
         return;
       }
 
-      setItems((prev) => applyReport(prev, sentIds, report));
-      setLastRun({ summary: report.summary, requestId });
-      const { failed, processed, total } = report.summary;
+      downloadBlob(excel.blob, excel.fileName);
+      setLastRun({ summary: report.summary });
       if (failed > 0) {
         toast.warning(`Excel generado con ${processed} de ${total} archivos. ${failed} con error: revisa la lista.`);
       } else {
         toast.success("¡Excel generado exitosamente!");
       }
     } catch (error) {
-      console.error(`[XmlToExcel] ${error.code || error.name}: ${error.message}`, error);
-      if (error.report) {
-        setItems((prev) => applyReport(prev, sentIds, error.report));
-      } else {
-        setItems((prev) => markSent(prev, sentIds, "pending"));
-      }
-      setLastRun({ error: toPlainError(error), summary: error.report?.summary ?? null, requestId: error.requestId ?? null });
-      toast.error(error.message);
+      // Not a file problem (those are in the report): e.g. the Excel library failed to load.
+      console.error("[XmlToExcel] EXCEL_GENERATION_FAILED", error);
+      setItems((prev) => markSent(prev, processedIds, "pending"));
+      setLastRun({
+        error: {
+          code: "EXCEL_GENERATION_FAILED",
+          message: "No se pudo generar el Excel en el navegador.",
+          hint: "Recarga la página e intenta de nuevo. Si continúa, usa «Copiar reporte de errores» y envíalo a soporte.",
+          details: { errorName: error.name, errorMessage: error.message },
+        },
+      });
+      toast.error("No se pudo generar el Excel.");
     } finally {
-      setIsLoading(false);
-      setPhase(null);
+      setProgress(null);
     }
   };
 
-  const handleRemove = (id) => setItems((prev) => prev.filter((item) => item.id !== id));
+  const handleRemove = useCallback((id) => setItems((prev) => prev.filter((item) => item.id !== id)), []);
 
   const handleRemoveFailed = () => {
     setItems((prev) => prev.filter((item) => item.status !== "error"));
@@ -327,7 +292,7 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
   };
 
   const handleCopyReport = async () => {
-    const report = buildFeedbackReport({ items, lastRun, apiUrl });
+    const report = buildFeedbackReport({ items, lastRun });
     try {
       await navigator.clipboard.writeText(report);
       toast.success("Reporte copiado. Pégalo en el correo o chat de soporte.");
@@ -357,9 +322,7 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
             ? "Arrastra más archivos XML o haz clic para agregarlos"
             : "Arrastra tus archivos XML aquí o haz clic para seleccionarlos"}
         </p>
-        <small>
-          Puedes subir todos los archivos que necesites (máximo {MAX_FILE_SIZE_MB} MB cada uno).
-        </small>
+        <small>Sin límite de archivos. Se procesan en tu computadora: no se suben a ningún servidor.</small>
       </div>
 
       {lastRun && <RunSummary lastRun={lastRun} items={items} />}
@@ -378,12 +341,6 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
         </>
       )}
 
-      {isLoading && (phase === "retrying" || isSlow) && (
-        <p className="slow-hint" role="status">
-          {PHASE_HINT[phase] ?? PHASE_HINT.uploading}
-        </p>
-      )}
-
       <div className="button-container">
         {items.length > 0 && (
           <>
@@ -391,11 +348,9 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
               type="button"
               className="generate-btn"
               onClick={handleGenerateExcel}
-              disabled={isLoading || toSend.length === 0}
+              disabled={isLoading || toProcess.length === 0}
             >
-              {isLoading
-                ? `${phase === "waking" ? "Conectando con el servidor" : phase === "retrying" ? "Reintentando" : `Procesando ${toSend.length} archivo${toSend.length === 1 ? "" : "s"}`}…${elapsedSeconds > 0 ? ` ${elapsedSeconds} s` : ""}`
-                : "Generar Excel Unificado"}
+              {isLoading ? `Procesando ${progress.done} de ${progress.total}…` : "Generar Excel Unificado"}
             </button>
             {errorCount > 0 && (
               <button type="button" className="secondary-btn" onClick={handleRemoveFailed} disabled={isLoading}>
@@ -415,10 +370,6 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
       </div>
     </div>
   );
-};
-
-XmlToExcel.propTypes = {
-  apiUrl: PropTypes.string,
 };
 
 export default XmlToExcel;

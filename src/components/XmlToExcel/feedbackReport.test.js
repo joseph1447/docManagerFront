@@ -5,8 +5,8 @@ import { xmlFile, okEntry, errorEntry } from "../../test/factories";
 
 it("includes everything a developer needs to reproduce each failure", () => {
   const { items } = addFiles([], [xmlFile("vacio.xml", ""), xmlFile("ok.xml"), xmlFile("cortada.xml")]);
-  const sentIds = sendableItems(items).map((i) => i.id);
-  const updated = applyReport(items, sentIds, {
+  const processedIds = sendableItems(items).map((i) => i.id);
+  const updated = applyReport(items, processedIds, {
     files: [
       okEntry(0, "ok.xml"),
       errorEntry(1, "cortada.xml", "INVALID_XML", "El archivo no es un XML válido (línea 6, columna 38)", "Descárgalo de nuevo.", { line: 6, column: 38 }),
@@ -15,19 +15,17 @@ it("includes everything a developer needs to reproduce each failure", () => {
 
   const text = buildFeedbackReport({
     items: updated,
-    lastRun: { summary: { total: 2, processed: 1, failed: 1, withWarnings: 0 }, requestId: "abc123" },
-    apiUrl: "https://api.test",
+    lastRun: { summary: { total: 2, processed: 1, failed: 1, withWarnings: 0 } },
     now: new Date("2026-10-12T15:00:00Z"),
     userAgent: "TestBrowser/1.0",
+    appVersion: "abc1234",
   });
 
   expect(text).toContain("Fecha: 2026-10-12T15:00:00.000Z");
-  expect(text).toContain("Servidor: https://api.test");
-  expect(text).toContain("Request ID: abc123");
+  expect(text).toContain("Versión: abc1234 (procesado en el navegador)");
   expect(text).toContain("Resultado: 1 de 2 procesados, 1 con error, 0 con advertencias");
-  expect(text).toContain("vacio.xml (0 B) — ERROR (detectado en el navegador, no se envió)");
+  expect(text).toContain("vacio.xml (0 B) — ERROR (detectado al agregarlo, no se procesó)");
   expect(text).toContain("[EMPTY_FILE]");
-  expect(text).toContain("cortada.xml");
   expect(text).toContain("[INVALID_XML] El archivo no es un XML válido (línea 6, columna 38)");
   expect(text).toContain("Cómo resolverlo: Descárgalo de nuevo.");
   expect(text).toContain('Detalle técnico: {"line":6,"column":38}');
@@ -35,12 +33,19 @@ it("includes everything a developer needs to reproduce each failure", () => {
   expect(text).toContain("Navegador: TestBrowser/1.0");
 });
 
-it("reports a global error (e.g. network) with its HTTP status", () => {
+it("reports a general error (e.g. the Excel library failed to load)", () => {
   const text = buildFeedbackReport({
     items: [],
-    lastRun: { error: { code: "SERVER_UNAVAILABLE", message: "El servidor no está disponible (HTTP 503).", hint: "Espera.", status: 503, details: null } },
-    apiUrl: "https://api.test",
+    lastRun: {
+      error: {
+        code: "EXCEL_GENERATION_FAILED",
+        message: "No se pudo generar el Excel en el navegador.",
+        hint: "Recarga la página.",
+        details: { errorMessage: "Failed to fetch dynamically imported module" },
+      },
+    },
   });
-  expect(text).toContain("Error general (HTTP 503):");
-  expect(text).toContain("[SERVER_UNAVAILABLE] El servidor no está disponible (HTTP 503).");
+  expect(text).toContain("Error general:");
+  expect(text).toContain("[EXCEL_GENERATION_FAILED] No se pudo generar el Excel en el navegador.");
+  expect(text).toContain("Failed to fetch dynamically imported module");
 });

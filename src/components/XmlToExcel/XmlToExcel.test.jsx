@@ -1,26 +1,15 @@
+// Full screen flow with real fixture XMLs processed in the (jsdom) browser. No server involved.
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import XmlToExcel from "./XmlToExcel";
-import { xmlFile, jsonResponse, okEntry, errorEntry, successBody, summarize } from "../../test/factories";
+import * as processing from "./processing/processInvoices";
+import { xmlFile, fixtureFile } from "../../test/factories";
 
-const API = "http://api.test";
-
-// GET {API}/ is the wake-up ping (always answers); `post` is the POST /upload answer: a Response,
-// an Error to reject with, or a function called on each attempt.
-const setup = (post) => {
-  const answerPost = typeof post === "function" ? post : post instanceof Error ? () => Promise.reject(post) : () => post;
-  const fetchMock = vi.fn(async (url, init = {}) => {
-    if (init.method !== "POST") return new Response('{"API":"DocManagerAPI"}', { status: 200 });
-    if (!post) throw new Error("POST not mocked");
-    return answerPost();
-  });
-  vi.stubGlobal("fetch", fetchMock);
+const setup = () => {
   const user = userEvent.setup({ applyAccept: false });
-  render(<XmlToExcel apiUrl={API} />);
-  const input = screen.getByLabelText("Seleccionar archivos XML");
-  const postCalls = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
-  return { user, input, fetchMock, postCalls };
+  render(<XmlToExcel />);
+  return { user, input: screen.getByLabelText("Seleccionar archivos XML") };
 };
 
 const rowFor = (name) => screen.getAllByTestId("file-item").find((li) => within(li).queryByText(name));
@@ -31,10 +20,12 @@ const generate = (user) => user.click(screen.getByRole("button", { name: /Genera
 
 describe("XmlToExcel", () => {
   it("tells exactly which files failed, why, and how to fix it (client complaint)", async () => {
-    const files = [okEntry(0, "factura-001.xml"), errorEntry(1, "respuesta-hacienda.xml", "UNSUPPORTED_DOCUMENT", "Este XML es la respuesta de Hacienda, no la factura.", "Sube el XML de la factura."), errorEntry(2, "cortada.xml", "INVALID_XML", "El archivo no es un XML válido (línea 6, columna 38): parece incompleto.", "Descárgalo de nuevo.", { line: 6 })];
-    const { user, input } = setup(jsonResponse(successBody(files)));
-
-    await user.upload(input, [xmlFile("factura-001.xml"), xmlFile("respuesta-hacienda.xml"), xmlFile("cortada.xml")]);
+    const { user, input } = setup();
+    await user.upload(input, [
+      fixtureFile("valid-factura-v43-crc.xml", "factura-001.xml"),
+      fixtureFile("mensaje-hacienda.xml", "respuesta-hacienda.xml"),
+      fixtureFile("malformada-cortada.xml", "cortada.xml"),
+    ]);
     await generate(user);
 
     const summary = await screen.findByRole("heading", { name: "Excel generado con 1 de 3 archivos" });
@@ -45,94 +36,70 @@ describe("XmlToExcel", () => {
 
     const hacienda = rowFor("respuesta-hacienda.xml");
     expect(within(hacienda).getByText("Error: no incluido en el Excel")).toBeInTheDocument();
-    expect(within(hacienda).getByText("Este XML es la respuesta de Hacienda, no la factura.")).toBeInTheDocument();
-    expect(within(hacienda).getByText("Sube el XML de la factura.")).toBeInTheDocument();
+    expect(within(hacienda).getByText(/es la respuesta de Hacienda/)).toBeInTheDocument();
+    expect(within(hacienda).getByText(/Sube el de la factura/)).toBeInTheDocument();
     expect(within(hacienda).getByText(/UNSUPPORTED_DOCUMENT/)).toBeInTheDocument();
 
     expect(within(rowFor("factura-001.xml")).getByText("Procesado")).toBeInTheDocument();
+    expect(within(rowFor("factura-001.xml")).getByText(/Consecutivo 00100001010000000123/)).toBeInTheDocument();
     expect(within(rowFor("cortada.xml")).getByText(/línea 6, columna 38/)).toBeInTheDocument();
-  });
-
-  it("downloads the Excel when at least one file succeeds", async () => {
-    const { user, input } = setup(jsonResponse(successBody([okEntry(0, "a.xml")])));
-    await user.upload(input, [xmlFile("a.xml")]);
-    await generate(user);
-
-    expect(await screen.findByRole("heading", { name: "Excel generado con el archivo" })).toBeInTheDocument();
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
   });
 
-  it("422: none could be processed -> alert + reason per file, no download", async () => {
-    HTMLAnchorElement.prototype.click.mockClear();
-    const files = [errorEntry(0, "a.xml", "EMPTY_FILE", "El archivo está vacío."), errorEntry(1, "b.xml", "UNSUPPORTED_DOCUMENT", "Es una Nota de Crédito.")];
-    const body = { error: { code: "NO_VALID_FILES", message: "Ninguno de los 2 archivos se pudo procesar.", hint: "Revisa el motivo indicado en cada archivo." }, report: { summary: summarize(files), files }, requestId: "r422" };
-    const { user, input } = setup(jsonResponse(body, 422));
+  it("never contacts a server", async () => {
+    const { user, input } = setup();
+    await user.upload(input, [fixtureFile("valid-tiquete-v44.xml")]);
+    await generate(user);
+    await screen.findByRole("heading", { name: "Excel generado con el archivo" });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
 
-    await user.upload(input, [xmlFile("a.xml"), xmlFile("b.xml")]);
+  it("none could be processed -> alert + reason per file, no download", async () => {
+    HTMLAnchorElement.prototype.click.mockClear();
+    const { user, input } = setup();
+    await user.upload(input, [fixtureFile("fecha-invalida.xml"), fixtureFile("nota-credito.xml")]);
     await generate(user);
 
     const alert = await findSummaryAlert();
     expect(within(alert).getByText("Ningún archivo se pudo procesar")).toBeInTheDocument();
-    expect(within(alert).getByText(/Ref: r422/)).toBeInTheDocument();
-    expect(within(rowFor("b.xml")).getByText("Es una Nota de Crédito.")).toBeInTheDocument();
+    expect(within(alert).getByText("Ninguno de los 2 archivos se pudo procesar.")).toBeInTheDocument();
+    expect(within(rowFor("nota-credito.xml")).getByText(/Nota de Crédito/)).toBeInTheDocument();
+    expect(within(rowFor("fecha-invalida.xml")).getByText(/"15\/03\/2024" no es una fecha válida/)).toBeInTheDocument();
     expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
   });
 
-  it("network failure -> retries once, then explains it, keeps the files and allows copying a report", async () => {
-    const { user, input, postCalls } = setup(new TypeError("Failed to fetch"));
-
-    await user.upload(input, [xmlFile("a.xml")]);
+  it("if the Excel cannot be generated, explains it, keeps the files and allows copying a report", async () => {
+    const spy = vi.spyOn(processing, "processInvoices").mockRejectedValueOnce(new Error("Failed to fetch dynamically imported module"));
+    const { user, input } = setup();
+    await user.upload(input, [fixtureFile("valid-tiquete-v44.xml", "a.xml")]);
     await generate(user);
 
     const alert = await findSummaryAlert();
-    expect(within(alert).getByText("No se pudo conectar con el servidor.")).toBeInTheDocument();
-    expect(within(alert).getByText(/NETWORK_ERROR/)).toBeInTheDocument();
+    expect(within(alert).getByText("No se pudo generar el Excel en el navegador.")).toBeInTheDocument();
+    expect(within(alert).getByText(/Recarga la página/)).toBeInTheDocument();
     expect(within(rowFor("a.xml")).getByText("Pendiente")).toBeInTheDocument();
-    expect(postCalls()).toHaveLength(2);
 
     // user-event installs a clipboard stub on navigator.
     await user.click(screen.getByRole("button", { name: /Copiar reporte/ }));
     const report = await navigator.clipboard.readText();
-    expect(report).toContain("[NETWORK_ERROR] No se pudo conectar con el servidor.");
-    expect(report).toContain('"attempts":2');
+    expect(report).toContain("[EXCEL_GENERATION_FAILED]");
+    expect(report).toContain("Failed to fetch dynamically imported module");
+    spy.mockRestore();
   });
 
-  it("a dropped connection is retried automatically and the Excel still arrives", async () => {
-    let attempt = 0;
-    const { user, input, postCalls } = setup(() =>
-      ++attempt === 1 ? Promise.reject(new TypeError("Failed to fetch")) : jsonResponse(successBody([okEntry(0, "a.xml")]))
-    );
-    await user.upload(input, [xmlFile("a.xml")]);
-    await generate(user);
-
-    expect(await screen.findByRole("heading", { name: "Excel generado con el archivo" })).toBeInTheDocument();
-    expect(postCalls()).toHaveLength(2);
-  });
-
-  it("pings the server on load and again right before the upload (Render free plan sleeps)", async () => {
-    const { user, input, fetchMock } = setup(jsonResponse(successBody([okEntry(0, "a.xml")])));
-    expect(fetchMock).toHaveBeenCalledWith(`${API}/`);
-
-    await user.upload(input, [xmlFile("a.xml")]);
-    await generate(user);
-    await screen.findByRole("heading", { name: "Excel generado con el archivo" });
-
-    const urls = fetchMock.mock.calls.map(([url]) => url);
-    expect(urls.slice(-2)).toEqual([`${API}/`, `${API}/upload`]);
-  });
-
-  it("flags empty / non-XML files before uploading and never sends them", async () => {
-    const { user, input, postCalls } = setup(jsonResponse(successBody([okEntry(0, "ok.xml")])));
-    await user.upload(input, [xmlFile("vacio.xml", ""), new File(["%PDF"], "factura.pdf", { type: "application/pdf" }), xmlFile("ok.xml")]);
+  it("flags empty / non-XML files when added and never processes them", async () => {
+    const spy = vi.spyOn(processing, "processInvoices");
+    const { user, input } = setup();
+    await user.upload(input, [xmlFile("vacio.xml", ""), new File(["%PDF"], "factura.pdf", { type: "application/pdf" }), fixtureFile("valid-tiquete-v44.xml", "ok.xml")]);
 
     expect(await within(rowFor("vacio.xml")).findByText("El archivo está vacío (0 bytes).")).toBeInTheDocument();
     expect(within(rowFor("factura.pdf")).getByText("No es un archivo .xml.")).toBeInTheDocument();
-    expect(within(rowFor("factura.pdf")).getByText("Error: no se enviará")).toBeInTheDocument();
+    expect(within(rowFor("factura.pdf")).getByText("Error: no se procesará")).toBeInTheDocument();
 
     await generate(user);
-    const sent = postCalls()[0][1].body.getAll("files").map((f) => f.name);
-    expect(sent).toEqual(["ok.xml"]);
-    expect(await screen.findByText(/2 archivos no se enviaron/)).toBeInTheDocument();
+    expect(spy.mock.calls[0][0].map((f) => f.name)).toEqual(["ok.xml"]);
+    expect(await screen.findByText(/2 archivos no se procesaron/)).toBeInTheDocument();
+    spy.mockRestore();
   });
 
   it("lets the user keep adding files and remove individual ones", async () => {
@@ -147,9 +114,8 @@ describe("XmlToExcel", () => {
   });
 
   it("'Quitar archivos con error' leaves only the good ones", async () => {
-    const files = [okEntry(0, "a.xml"), errorEntry(1, "b.xml", "INVALID_XML", "x")];
-    const { user, input } = setup(jsonResponse(successBody(files)));
-    await user.upload(input, [xmlFile("a.xml"), xmlFile("b.xml")]);
+    const { user, input } = setup();
+    await user.upload(input, [fixtureFile("valid-tiquete-v44.xml", "a.xml"), fixtureFile("malformada-etiqueta.xml", "b.xml")]);
     await generate(user);
 
     await user.click(await screen.findByRole("button", { name: "Quitar archivos con error" }));
