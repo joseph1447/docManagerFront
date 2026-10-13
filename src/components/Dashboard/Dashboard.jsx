@@ -1,7 +1,7 @@
 import "./Dashboard.css";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { FaDownload, FaEnvelope, FaLinkedin, FaGithub, FaCode, FaCloud, FaDatabase, FaMobile, FaGlobe, FaSun, FaMoon } from "react-icons/fa";
+import { FaDownload, FaEnvelope, FaCode, FaCloud, FaDatabase, FaMobile, FaGlobe, FaSun, FaMoon } from "react-icons/fa";
 
 import BromleyLaptop from '../../assets/BromleyLaptop.png'
 import BromleyMobile from '../../assets/BromleyMobile.png'
@@ -364,11 +364,11 @@ const Dashboard = () => {
       {/* Contact Section */}
       <section id="contact" className="contact-section">
         <div className="section-content">
-          <h2 className="section-title">Let's Work Together</h2>
+          <h2 className="section-title">Let&apos;s Work Together</h2>
           <div className="contact-grid">
             <div className="contact-info-section">
               <h3>Get in Touch</h3>
-              <p>Ready to start your next project? Let's discuss how I can help you achieve your goals with modern technology and AI solutions.</p>
+              <p>Ready to start your next project? Let&apos;s discuss how I can help you achieve your goals with modern technology and AI solutions.</p>
               <div className="contact-methods">
                 <a href="mailto:josephquesada92@gmail.com" className="contact-method">
                   <FaEnvelope />
