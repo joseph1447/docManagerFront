@@ -14,7 +14,7 @@ import {
 } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 import "./XmlToExcel.css";
-import { uploadXmlFiles, MAX_FILES, MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
+import { uploadXmlFiles, MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
 import { addFiles, applyReport, markSent, sendableItems, formatSize } from "./fileSelection";
 import { buildFeedbackReport } from "./feedbackReport";
 
@@ -220,17 +220,19 @@ RunSummary.propTypes = {
 const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSlow, setIsSlow] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lastRun, setLastRun] = useState(null);
 
   useEffect(() => {
     if (!isLoading) return undefined;
-    const timer = setTimeout(() => setIsSlow(true), SLOW_SERVER_MS);
+    const startedAt = Date.now();
+    const timer = setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
     return () => {
-      clearTimeout(timer);
-      setIsSlow(false);
+      clearInterval(timer);
+      setElapsedSeconds(0);
     };
   }, [isLoading]);
+  const isSlow = elapsedSeconds * 1000 >= SLOW_SERVER_MS;
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "application/xml": [".xml"] },
@@ -340,7 +342,7 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
             : "Arrastra tus archivos XML aquí o haz clic para seleccionarlos"}
         </p>
         <small>
-          Máximo {MAX_FILES} archivos de {MAX_FILE_SIZE_MB} MB cada uno.
+          Puedes subir todos los archivos que necesites (máximo {MAX_FILE_SIZE_MB} MB cada uno).
         </small>
       </div>
 
@@ -362,8 +364,8 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
 
       {isLoading && isSlow && (
         <p className="slow-hint" role="status">
-          El servidor está tardando más de lo normal. Si estaba inactivo puede tardar hasta un minuto en despertar; no
-          cierres esta página.
+          Con muchos archivos esto puede tardar unos minutos, y si el servidor estaba inactivo tarda hasta un minuto
+          más en despertar. No cierres esta página.
         </p>
       )}
 
@@ -376,7 +378,9 @@ const XmlToExcel = ({ apiUrl = import.meta.env.VITE_API_URL }) => {
               onClick={handleGenerateExcel}
               disabled={isLoading || toSend.length === 0}
             >
-              {isLoading ? `Procesando ${toSend.length} archivo${toSend.length === 1 ? "" : "s"}…` : "Generar Excel Unificado"}
+              {isLoading
+                ? `Procesando ${toSend.length} archivo${toSend.length === 1 ? "" : "s"}…${elapsedSeconds > 0 ? ` ${elapsedSeconds} s` : ""}`
+                : "Generar Excel Unificado"}
             </button>
             {errorCount > 0 && (
               <button type="button" className="secondary-btn" onClick={handleRemoveFailed} disabled={isLoading}>

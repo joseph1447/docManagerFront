@@ -1,4 +1,4 @@
-import { MAX_FILES, MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
+import { MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
 
 const fileId = (file) => `${file.name}::${file.size}::${file.lastModified}`;
 
@@ -42,13 +42,13 @@ const validateFile = (file) => {
  */
 export function addFiles(items, acceptedFiles, rejectedFiles = []) {
   const next = [...items];
-  const notices = [];
+  const duplicates = [];
   const ids = new Set(items.map((item) => item.id));
 
   const push = (file, error) => {
     const id = fileId(file);
     if (ids.has(id)) {
-      notices.push(`"${file.name}" ya estaba en la lista; no se agregó de nuevo.`);
+      duplicates.push(file.name);
       return;
     }
     ids.add(id);
@@ -61,13 +61,9 @@ export function addFiles(items, acceptedFiles, rejectedFiles = []) {
     push(file, known ? known() : clientError("REJECTED", errors.map((e) => e.message).join(" "), null));
   });
 
-  const sendable = next.filter((item) => item.origin !== "client");
-  if (sendable.length > MAX_FILES) {
-    const overflow = new Set(sendable.slice(MAX_FILES).map((item) => item.id));
-    notices.push(`Se pueden procesar máximo ${MAX_FILES} archivos por carga; se ignoraron ${overflow.size}. Procésalos en otro grupo.`);
-    return { items: next.filter((item) => !overflow.has(item.id)), notices };
-  }
-
+  const notices = [];
+  if (duplicates.length === 1) notices.push(`"${duplicates[0]}" ya estaba en la lista; no se agregó de nuevo.`);
+  if (duplicates.length > 1) notices.push(`${duplicates.length} archivos ya estaban en la lista; no se agregaron de nuevo.`);
   return { items: next, notices };
 }
 

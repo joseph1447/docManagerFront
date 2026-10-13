@@ -1,9 +1,12 @@
 // Client for POST /upload of docManagerAPI. Contract documented in CLAUDE.md.
-export const MAX_FILES = 100;
-export const MAX_FILE_SIZE_MB = 5;
+// No limit on the number of files; only a per-file sanity limit (same as the API).
+export const MAX_FILE_SIZE_MB = 20;
 export const EXCEL_FILE_NAME = "resultado.xlsx";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-const DEFAULT_TIMEOUT_MS = 120_000;
+
+// Big batches take longer to upload and process (the free Render server is slow), so the
+// timeout grows with the batch: 2 min + 1 s per file.
+export const timeoutFor = (fileCount) => 120_000 + fileCount * 1_000;
 
 const RETRY_HINT = "Intenta de nuevo. Si continúa, usa «Copiar reporte» y envíalo a soporte.";
 const WAKE_UP_HINT =
@@ -45,7 +48,7 @@ const errorForStatus = (status) => {
  * `report` is null when the API is older than the per-file report (it only returns the .xlsx).
  * Throws UploadError with a user-facing message, a hint and technical details.
  */
-export async function uploadXmlFiles(files, { baseUrl = import.meta.env.VITE_API_URL, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+export async function uploadXmlFiles(files, { baseUrl = import.meta.env.VITE_API_URL, fetchImpl = globalThis.fetch, timeoutMs = timeoutFor(files.length) } = {}) {
   if (!baseUrl) {
     throw new UploadError({
       code: "CONFIG_MISSING_API_URL",
@@ -74,7 +77,7 @@ export async function uploadXmlFiles(files, { baseUrl = import.meta.env.VITE_API
         throw new UploadError({
           code: "TIMEOUT",
           message: `El servidor no respondió en ${Math.round(timeoutMs / 1000)} segundos.`,
-          hint: `${WAKE_UP_HINT} Si subes muchos archivos, prueba con grupos más pequeños.`,
+          hint: `${WAKE_UP_HINT} Si la conexión es lenta, intenta de nuevo o divide los archivos en dos cargas.`,
         });
       }
       throw new UploadError({

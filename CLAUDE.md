@@ -1,6 +1,7 @@
 # docManagerFront
 
-Front (Vite + React 18, JS) de DocManager. Producción en Vercel (`doc-manager-front.vercel.app`).
+Front (Vite + React 18, JS) de DocManager. Producción en Vercel (`doc-manager-front.vercel.app`, team `wedoitwithai`), se despliega solo al hacer push a `main`.
+`vercel.json` manda todas las rutas a `index.html`: sin eso, abrir o recargar `/admin/xml-to-excel` da 404 (lo protege `src/deploy.test.js`).
 La API es otro repo: **`C:\Repos\docManagerAPI`** (`github.com/joseph1447/docManagerAPI`, Express en Render).
 Herramienta principal para la clienta: **XML → Excel** (`/admin/xml-to-excel`), que convierte facturas y tiquetes electrónicos de Hacienda en un Excel unificado.
 
@@ -29,7 +30,7 @@ Las fábricas de respuestas de la API están en `src/test/factories.js`; si camb
 
 ## Contrato con la API: `POST {VITE_API_URL}/upload`
 
-- `multipart/form-data`, campo `files` (máx. 100 archivos, 5 MB c/u), header `Accept: application/json`.
+- `multipart/form-data`, campo `files`, header `Accept: application/json`. **Sin límite de cantidad de archivos** (la clienta sube meses completos; no volver a poner tope). Solo hay un tope de 20 MB por archivo, y el front marca esos archivos sin bloquear los demás. El timeout del front crece con la cantidad (`timeoutFor`).
 - **200** → `{ report, excel: { fileName, mimeType, base64 }, requestId }`.
 - **400 / 413 / 422 / 500** → `{ error: { code, message, hint, details?, fileName? }, report?, requestId }`.
   - 422 `NO_VALID_FILES` incluye `report`: ningún archivo sirvió y cada uno dice por qué.

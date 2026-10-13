@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { uploadXmlFiles, UploadError } from "./uploadXmlFiles";
+import { uploadXmlFiles, UploadError, timeoutFor } from "./uploadXmlFiles";
 import { xmlFile, jsonResponse, okEntry, errorEntry, successBody, summarize } from "../../test/factories";
 
 const BASE = "http://api.test";
@@ -100,6 +100,11 @@ describe("uploadXmlFiles", () => {
       })
     );
     await expectUploadError(uploadXmlFiles(files, { baseUrl: BASE, fetchImpl, timeoutMs: 10 }), { code: "TIMEOUT" });
+  });
+
+  it("default timeout grows with the number of files", () => {
+    expect(timeoutFor(1)).toBe(121_000);
+    expect(timeoutFor(1000)).toBe(1_120_000);
   });
 
   it("missing VITE_API_URL -> CONFIG_MISSING_API_URL without calling fetch", async () => {

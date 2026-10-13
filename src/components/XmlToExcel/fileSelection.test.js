@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { addFiles, applyReport, sendableItems, markSent, formatSize } from "./fileSelection";
-import { MAX_FILES, MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
+import { MAX_FILE_SIZE_MB } from "./uploadXmlFiles";
 import { xmlFile, okEntry, errorEntry } from "../../test/factories";
 
 describe("addFiles", () => {
@@ -37,11 +37,19 @@ describe("addFiles", () => {
     expect(items[0].error).toMatchObject({ code: "NOT_XML_EXTENSION", message: "No es un archivo .xml." });
   });
 
-  it(`caps the batch at ${MAX_FILES} sendable files and reports how many were ignored`, () => {
-    const many = Array.from({ length: MAX_FILES + 3 }, (_, i) => xmlFile(`f${i}.xml`));
+  it("has no limit on the number of files", () => {
+    const many = Array.from({ length: 1500 }, (_, i) => xmlFile(`f${i}.xml`));
     const { items, notices } = addFiles([], many);
-    expect(items).toHaveLength(MAX_FILES);
-    expect(notices[0]).toContain("se ignoraron 3");
+    expect(sendableItems(items)).toHaveLength(1500);
+    expect(notices).toEqual([]);
+  });
+
+  it("groups duplicate notices into one message", () => {
+    const files = [xmlFile("a.xml"), xmlFile("b.xml"), xmlFile("c.xml")];
+    const first = addFiles([], files);
+    const { items, notices } = addFiles(first.items, files);
+    expect(items).toHaveLength(3);
+    expect(notices).toEqual(["3 archivos ya estaban en la lista; no se agregaron de nuevo."]);
   });
 });
 
